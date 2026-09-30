@@ -7,7 +7,32 @@
 
 <PageTitle>Create Mode — Codeigo</PageTitle>
 
-@if (_currentView == ViewMode.List)
+@if (!Progress.IsLoggedIn)
+{
+    <!-- Account Required Gate View -->
+    <div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 40px;" class="anim-fade-up">
+        <div class="card" style="max-width: 480px; width: 100%; padding: 40px; text-align: center; border-radius: 28px; box-shadow: 0 8px 0 var(--line);">
+            <div class="mascot lg" style="margin: 0 auto 20px;">
+                <i class="eye"></i>
+                <i class="eye"></i>
+                <b class="mouth"></b>
+            </div>
+            <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 12px; color: var(--ink);">Account Required</h1>
+            <p style="font-size: 17px; line-height: 1.5; color: var(--mut); margin-bottom: 28px;">
+                Create mode is tied to an account. Sign in to author your own coding quizzes, organize questions, and share custom drills.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <button class="btn lg" style="width: 100%;" @onclick='() => Progress.Login("Ethan")'>
+                    Sign in to use Create mode
+                </button>
+                <button class="btn o" style="width: 100%;" @onclick='() => Nav.NavigateTo("/learn")'>
+                    Back to Learn
+                </button>
+            </div>
+        </div>
+    </div>
+}
+else if (_currentView == ViewMode.List)
 {
     <!-- ── View 1: My Quizzes List ──────────────────────────────────────── -->
     <div style="padding: 36px 48px; max-width: 1200px; margin: 0 auto;" class="anim-fade-up">
@@ -338,28 +363,6 @@ else
     </div>
 }
 
-<!-- Require Account Modal (as specified: "No — account required to save any quiz") -->
-@if (_showAuthModal)
-{
-    <div style="position: fixed; inset: 0; background: rgba(38,34,74,.4); display: flex; align-items: center; justify-content: center; z-index: 1000;" @onclick="() => _showAuthModal = false">
-        <div class="card anim-pop" style="width: 440px; padding: 32px; text-align: center; position: relative;" @onclick:stopPropagation="true">
-            <div class="mascot sm" style="margin: 0 auto 16px;">
-                <i class="eye"></i>
-                <i class="eye"></i>
-                <b class="mouth"></b>
-            </div>
-            <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">Account Required</h2>
-            <p style="color: var(--mut); font-size: 15px; margin-bottom: 24px; line-height: 1.45;">
-                To publish and save custom quizzes, you need an account. Sign in or continue as Ethan to link this quiz to your profile.
-            </p>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn" @onclick="AuthenticateAndSave">Sign in as Ethan</button>
-                <button class="btn o" @onclick="() => _showAuthModal = false">Cancel</button>
-            </div>
-        </div>
-    </div>
-}
-
 <!-- Published / Share Code Modal -->
 @if (_showShareModal)
 {
@@ -393,7 +396,6 @@ else
     private string _enterShareCode = "";
     private string? _shareCodeError = null;
 
-    private bool _showAuthModal = false;
     private bool _showShareModal = false;
 
     private Exercise? CurrentQuestion =>
@@ -517,32 +519,12 @@ else
 
     private void SaveDraft()
     {
-        if (!Progress.IsLoggedIn)
-        {
-            _showAuthModal = true;
-            return;
-        }
-
         Quizzes.SaveQuiz(_activeQuiz);
         BackToList();
     }
 
     private void PublishQuiz()
     {
-        if (!Progress.IsLoggedIn)
-        {
-            _showAuthModal = true;
-            return;
-        }
-
-        Quizzes.SaveQuiz(_activeQuiz);
-        _showShareModal = true;
-    }
-
-    private void AuthenticateAndSave()
-    {
-        Progress.Login("Ethan");
-        _showAuthModal = false;
         Quizzes.SaveQuiz(_activeQuiz);
         _showShareModal = true;
     }
