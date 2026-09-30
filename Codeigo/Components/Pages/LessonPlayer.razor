@@ -1,0 +1,527 @@
+@page "/lesson/{Lang}/{TrackId}/{LessonId}"
+@page "/quiz/play/{QuizId}"
+@layout EmptyLayout
+@inject ContentService Content
+@inject QuizService Quizzes
+@inject ProgressService Progress
+@inject ExerciseEngineService Engine
+@inject NavigationManager Nav
+
+<PageTitle>@_lessonTitle — Codeigo</PageTitle>
+
+@if (_exercises.Count == 0)
+{
+    <div style="height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;">
+        <h2>Lesson not found</h2>
+        <button class="btn" @onclick='() => Nav.NavigateTo("/learn")'>Return to Learn</button>
+    </div>
+}
+else
+{
+    var currentExercise = _exercises[_currentIndex];
+
+    <div style="height: 100vh; display: flex; flex-direction: column; background: #fff; max-width: 1280px; margin: 0 auto; overflow: hidden;">
+        
+        <!-- Header: Exit button, Progress bar, Hearts/Stats -->
+        <header style="display: flex; align-items: center; gap: 22px; padding: 28px 200px 0; flex: none;">
+            <span style="font-size: 34px; color: #A9A5C7; cursor: pointer; user-select: none; line-height: 1;" 
+                  title="Exit lesson" 
+                  @onclick="ConfirmExit">
+                ×
+            </span>
+            <div class="bar">
+                <i class="bar-fill" style="width: @ProgressPercent%;"></i>
+            </div>
+            @if (Progress.HeartsEnabled)
+            {
+                <span class="pill" style="color: var(--co);">♥ @Progress.Hearts</span>
+            }
+            else
+            {
+                <span class="pill" style="color: var(--p); font-size: 15px;">@(_currentIndex + 1) / @_exercises.Count</span>
+            }
+        </header>
+
+        <!-- Main Exercise Area -->
+        <main style="flex: 1; padding: 36px 200px 0; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;">
+            <div>
+                <span class="tag">@GetExerciseTypeLabel(currentExercise.Type)</span>
+            </div>
+
+            <h1 style="font-size: 32px; font-weight: 700; color: var(--ink);">
+                @currentExercise.Prompt
+            </h1>
+
+            <!-- Code snippet display -->
+            @if (!string.IsNullOrEmpty(currentExercise.Code))
+            {
+                <div class="code-window">
+                    @for (int i = 0; i < _codeLines.Count; i++)
+                    {
+                        var lineIndex = i + 1;
+                        var lineContent = _codeLines[i];
+
+                        <div class="code-line">
+                            <span class="ln-num">@lineIndex</span>
+                            <span>
+                                @if (lineContent.Contains("[["))
+                                {
+                                    @RenderFillBlankLine(lineContent)
+                                }
+                                else
+                                {
+                                    @FormatSyntax(lineContent)
+                                }
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Exercise interactive controls -->
+            <div style="margin-top: 8px;">
+                @switch (currentExercise.Type)
+                {
+                    case ExerciseType.FillBlank:
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            @foreach (var key in _blankKeys)
+                            {
+                                var isSelected = _selectedAnswer == key;
+                                <div class="key-chip @(isSelected ? "used" : "")" 
+                                     @onclick="() => SelectKey(key)">
+                                    @key
+                                </div>
+                            }
+                        </div>
+                        break;
+
+                    case ExerciseType.MultipleChoice:
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            @for (int i = 0; i < currentExercise.Options.Count; i++)
+                            {
+                                var optIndex = i;
+                                var optText = currentExercise.Options[i];
+                                var letter = (char)('A' + i);
+                                var isSel = _selectedOptionIndex == optIndex;
+                                var cardClass = "";
+
+                                if (_status == StepStatus.Checked)
+                                {
+                                    if (optIndex == currentExercise.CorrectIndex) cardClass = "correct";
+                                    else if (isSel) cardClass = "wrong";
+                                }
+                                else if (isSel)
+                                {
+                                    cardClass = "selected";
+                                }
+
+                                <div class="answer-card @cardClass" @onclick="() => ChooseOption(optIndex)">
+                                    <div class="answer-letter">@letter</div>
+                                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 16px;">@optText</div>
+                                </div>
+                            }
+                        </div>
+                        break;
+
+                    case ExerciseType.PredictOutput:
+                        <div style="max-width: 500px;">
+                            <label class="lbl">Predicted console output:</label>
+                            <textarea class="inp code-inp" rows="3" placeholder="Type expected output..." 
+                                      @bind="_textAnswer" 
+                                      @bind:event="oninput" 
+                                      disabled="@(_status == StepStatus.Checked)"></textarea>
+                        </div>
+                        break;
+
+                    case ExerciseType.ArrangeCode:
+                        <div style="display: flex; flex-direction: column; gap: 14px;">
+                            <label class="lbl">Your arranged tokens (tap token below to add, tap token here to remove):</label>
+                            <div class="token-area">
+                                @if (_arrangedTokens.Count == 0)
+                                {
+                                    <span style="color: var(--mut); font-size: 14px; padding: 6px;">Tap tokens below to assemble in order...</span>
+                                }
+                                else
+                                {
+                                    @for (int tIdx = 0; tIdx < _arrangedTokens.Count; tIdx++)
+                                    {
+                                        var idx = tIdx;
+                                        var token = _arrangedTokens[tIdx];
+                                        <span class="token" style="background: var(--pt); border-color: var(--p);" @onclick="() => RemoveArrangedToken(idx)">
+                                            @token ✕
+                                        </span>
+                                    }
+                                }
+                            </div>
+
+                            <label class="lbl">Available tokens:</label>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                @for (int aIdx = 0; aIdx < _availableTokens.Count; aIdx++)
+                                {
+                                    var idx = aIdx;
+                                    var tok = _availableTokens[aIdx];
+                                    <span class="token" @onclick="() => AddArrangedToken(idx)">
+                                        @tok
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                        break;
+
+                    case ExerciseType.TypeItOut:
+                        <div style="max-width: 600px;">
+                            <label class="lbl">Type the exact line of code:</label>
+                            <input class="inp code-inp" 
+                                   placeholder="Type syntax here..." 
+                                   @bind="_textAnswer" 
+                                   @bind:event="oninput" 
+                                   disabled="@(_status == StepStatus.Checked)" />
+                        </div>
+                        break;
+                }
+            </div>
+        </main>
+
+        <!-- Bottom Feedback Banner Footer -->
+        <footer class="feedback-foot @(_status == StepStatus.Checked ? (_isCorrect ? "ok" : "bad") : "")">
+            @if (_status == StepStatus.Unchecked)
+            {
+                <button class="btn o" @onclick="SkipExercise">Skip</button>
+                <button class="btn @(CanCheck ? "g" : "d")" disabled="@(!CanCheck)" @onclick="CheckCurrentAnswer">
+                    Check
+                </button>
+            }
+            else
+            {
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <div class="mascot @(!_isCorrect ? "sad" : "")">
+                        <i class="eye"></i>
+                        <i class="eye"></i>
+                        <b class="mouth"></b>
+                    </div>
+                    <div>
+                        <h3>@(_isCorrect ? "Nicely done!" : "Not quite")</h3>
+                        <p>
+                            @if (!_isCorrect && !string.IsNullOrEmpty(_resultExplanation))
+                            {
+                                <span>@_resultExplanation</span>
+                            }
+                            else if (_isCorrect && !string.IsNullOrEmpty(currentExercise.Explanation))
+                            {
+                                <span>@currentExercise.Explanation</span>
+                            }
+                            else if (!_isCorrect)
+                            {
+                                <span>Expected: @_expectedAnswer</span>
+                            }
+                            else
+                            {
+                                <span>Great job mastering this syntax!</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+                <button class="btn @(_isCorrect ? "g" : "r")" @onclick="AdvanceNext">
+                    Continue
+                </button>
+            }
+        </footer>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Lang { get; set; }
+    [Parameter] public string? TrackId { get; set; }
+    [Parameter] public string? LessonId { get; set; }
+    [Parameter] public string? QuizId { get; set; }
+
+    private enum StepStatus { Unchecked, Checked }
+
+    private string _lessonTitle = "Lesson";
+    private List<Exercise> _exercises = [];
+    private int _currentIndex = 0;
+    private StepStatus _status = StepStatus.Unchecked;
+    private bool _isCorrect = false;
+    private string _resultExplanation = "";
+    private string _expectedAnswer = "";
+
+    private DateTime _startTime = DateTime.UtcNow;
+    private int _correctCount = 0;
+
+    // Exercise-specific input states
+    private string? _selectedAnswer = null; // for fill-blank
+    private int? _selectedOptionIndex = null; // for multiple choice
+    private string _textAnswer = ""; // for predict & type-it-out
+    private List<string> _arrangedTokens = [];
+    private List<string> _availableTokens = [];
+    private List<string> _blankKeys = [];
+    private List<string> _codeLines = [];
+
+    private int ProgressPercent =>
+        _exercises.Count == 0 ? 0 : (int)Math.Round((_currentIndex * 100.0) / _exercises.Count);
+
+    private bool CanCheck
+    {
+        get
+        {
+            if (_exercises.Count == 0 || _currentIndex >= _exercises.Count) return false;
+            var ex = _exercises[_currentIndex];
+            return ex.Type switch
+            {
+                ExerciseType.MultipleChoice => _selectedOptionIndex.HasValue,
+                ExerciseType.FillBlank => !string.IsNullOrEmpty(_selectedAnswer),
+                ExerciseType.PredictOutput => !string.IsNullOrWhiteSpace(_textAnswer),
+                ExerciseType.TypeItOut => !string.IsNullOrWhiteSpace(_textAnswer),
+                ExerciseType.ArrangeCode => _arrangedTokens.Count > 0,
+                _ => false
+            };
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        LoadLessonData();
+    }
+
+    private void LoadLessonData()
+    {
+        _currentIndex = 0;
+        _correctCount = 0;
+        _startTime = DateTime.UtcNow;
+
+        if (!string.IsNullOrEmpty(QuizId))
+        {
+            var quiz = Quizzes.GetQuizById(QuizId);
+            if (quiz != null)
+            {
+                _lessonTitle = quiz.Title;
+                _exercises = quiz.Exercises;
+            }
+        }
+        else if (!string.IsNullOrEmpty(Lang) && !string.IsNullOrEmpty(TrackId) && !string.IsNullOrEmpty(LessonId))
+        {
+            var lesson = Content.GetLesson(Lang, TrackId, LessonId);
+            if (lesson != null)
+            {
+                _lessonTitle = lesson.Title;
+                _exercises = lesson.Exercises;
+            }
+        }
+
+        PrepareCurrentExercise();
+    }
+
+    private void PrepareCurrentExercise()
+    {
+        _status = StepStatus.Unchecked;
+        _selectedAnswer = null;
+        _selectedOptionIndex = null;
+        _textAnswer = "";
+        _arrangedTokens.Clear();
+        _availableTokens.Clear();
+        _blankKeys.Clear();
+        _codeLines.Clear();
+
+        if (_exercises.Count == 0 || _currentIndex >= _exercises.Count) return;
+        var ex = _exercises[_currentIndex];
+
+        if (!string.IsNullOrEmpty(ex.Code))
+        {
+            _codeLines = ex.Code.Replace("\r\n", "\n").Split('\n').ToList();
+        }
+
+        if (ex.Type == ExerciseType.FillBlank)
+        {
+            // Seed candidate keys including correct answer and distractors
+            var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var acc in ex.AcceptedAnswers) keys.Add(acc);
+
+            var match = System.Text.RegularExpressions.Regex.Match(ex.Code ?? "", @"\[\[(.*?)\]\]");
+            if (match.Success) keys.Add(match.Groups[1].Value);
+
+            // Add distractors based on language
+            if (ex.Language == "python")
+            {
+                keys.Add("len");
+                keys.Add("print");
+                keys.Add("while");
+            }
+            else if (ex.Language == "javascript")
+            {
+                keys.Add("log");
+                keys.Add("length");
+                keys.Add("push");
+            }
+            else
+            {
+                keys.Add("cin");
+                keys.Add("endl");
+                keys.Add("string");
+            }
+
+            _blankKeys = keys.Take(4).OrderBy(_ => Guid.NewGuid()).ToList();
+        }
+        else if (ex.Type == ExerciseType.ArrangeCode)
+        {
+            if (ex.Tokens != null && ex.Tokens.Count > 0)
+            {
+                _availableTokens = ex.Tokens.OrderBy(_ => Guid.NewGuid()).ToList();
+            }
+            else if (!string.IsNullOrEmpty(ex.Code))
+            {
+                // Break code by lines or space tokens
+                var tokens = ex.Code.Split(new[] { ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                                    .OrderBy(_ => Guid.NewGuid())
+                                    .ToList();
+                _availableTokens = tokens;
+            }
+        }
+    }
+
+    private void SelectKey(string key)
+    {
+        if (_status == StepStatus.Checked) return;
+        _selectedAnswer = (_selectedAnswer == key) ? null : key;
+    }
+
+    private void ChooseOption(int idx)
+    {
+        if (_status == StepStatus.Checked) return;
+        _selectedOptionIndex = idx;
+    }
+
+    private void AddArrangedToken(int availableIdx)
+    {
+        if (_status == StepStatus.Checked || availableIdx >= _availableTokens.Count) return;
+        var token = _availableTokens[availableIdx];
+        _arrangedTokens.Add(token);
+        _availableTokens.RemoveAt(availableIdx);
+    }
+
+    private void RemoveArrangedToken(int arrangedIdx)
+    {
+        if (_status == StepStatus.Checked || arrangedIdx >= _arrangedTokens.Count) return;
+        var token = _arrangedTokens[arrangedIdx];
+        _availableTokens.Add(token);
+        _arrangedTokens.RemoveAt(arrangedIdx);
+    }
+
+    private void CheckCurrentAnswer()
+    {
+        if (!CanCheck) return;
+        var ex = _exercises[_currentIndex];
+
+        string? answer = ex.Type switch
+        {
+            ExerciseType.FillBlank => _selectedAnswer,
+            ExerciseType.PredictOutput => _textAnswer,
+            ExerciseType.TypeItOut => _textAnswer,
+            ExerciseType.ArrangeCode => string.Join(" ", _arrangedTokens),
+            _ => null
+        };
+
+        var result = Engine.CheckAnswer(ex, answer, _selectedOptionIndex, _arrangedTokens);
+        _isCorrect = result.IsCorrect;
+        _expectedAnswer = result.ExpectedAnswer ?? "";
+        _resultExplanation = result.Explanation;
+
+        if (_isCorrect)
+        {
+            _correctCount++;
+        }
+        else if (Progress.HeartsEnabled)
+        {
+            Progress.LoseHeart();
+        }
+
+        _status = StepStatus.Checked;
+    }
+
+    private void SkipExercise()
+    {
+        var ex = _exercises[_currentIndex];
+        _isCorrect = false;
+        _expectedAnswer = ex.AcceptedAnswers.FirstOrDefault() ?? ex.ExpectedOutput ?? "Correct answer";
+        _resultExplanation = ex.Explanation ?? "Exercise skipped.";
+        _status = StepStatus.Checked;
+    }
+
+    private void AdvanceNext()
+    {
+        if (_currentIndex + 1 < _exercises.Count)
+        {
+            _currentIndex++;
+            PrepareCurrentExercise();
+        }
+        else
+        {
+            // Finished!
+            var duration = DateTime.UtcNow - _startTime;
+            var targetId = LessonId ?? QuizId ?? "quiz";
+
+            if (!string.IsNullOrEmpty(LessonId))
+            {
+                Progress.RecordLessonComplete(LessonId, _correctCount, _exercises.Count, duration);
+            }
+
+            Nav.NavigateTo($"/complete/{targetId}?total={_exercises.Count}&correct={_correctCount}&sec={(int)duration.TotalSeconds}");
+        }
+    }
+
+    private void ConfirmExit()
+    {
+        Nav.NavigateTo("/learn");
+    }
+
+    private string GetExerciseTypeLabel(ExerciseType type) => type switch
+    {
+        ExerciseType.MultipleChoice => "Multiple choice",
+        ExerciseType.FillBlank => "Fill in the blank",
+        ExerciseType.ArrangeCode => "Arrange the code",
+        ExerciseType.PredictOutput => "Predict the output",
+        ExerciseType.TypeItOut => "Type it out",
+        _ => "Exercise"
+    };
+
+    private MarkupString RenderFillBlankLine(string line)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(line, @"^(.*?)\[\[(.*?)\]\](.*)$");
+        if (!match.Success) return (MarkupString)FormatSyntax(line);
+
+        var before = FormatSyntax(match.Groups[1].Value);
+        var after = FormatSyntax(match.Groups[3].Value);
+        var blankClass = "blank";
+
+        if (_status == StepStatus.Checked)
+        {
+            blankClass += _isCorrect ? " ok" : " bad";
+        }
+
+        var content = _selectedAnswer ?? "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+        return (MarkupString)$"{before}<span class=\"{blankClass}\">{content}</span>{after}";
+    }
+
+    private string FormatSyntax(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return "";
+        var escaped = System.Net.WebUtility.HtmlEncode(raw);
+        // Highlight common keywords
+        var keywords = new[] { "for", "while", "in", "def", "return", "if", "elif", "else", "const", "let", "void", "int", "using", "namespace" };
+        foreach (var kw in keywords)
+        {
+            escaped = System.Text.RegularExpressions.Regex.Replace(
+                escaped, 
+                $@"\b({kw})\b", 
+                "<b class=\"kw\">$1</b>");
+        }
+        var functions = new[] { "print", "range", "len", "log", "cout", "push" };
+        foreach (var fn in functions)
+        {
+            escaped = System.Text.RegularExpressions.Regex.Replace(
+                escaped, 
+                $@"\b({fn})\b", 
+                "<b class=\"fn\">$1</b>");
+        }
+        return escaped;
+    }
+}

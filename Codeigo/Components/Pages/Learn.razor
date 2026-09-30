@@ -1,0 +1,249 @@
+@page "/learn"
+@inject ContentService Content
+@inject ProgressService Progress
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Learn — Codeigo</PageTitle>
+
+<div style="display: flex; height: 100vh; overflow: hidden;">
+    <!-- Main Center Area -->
+    <div style="flex: 1; padding: 28px 40px; display: flex; flex-direction: column; gap: 24px; align-items: center; overflow-y: auto;">
+        
+        <!-- Language Switcher Chips -->
+        <div style="display: flex; gap: 10px; align-self: flex-start; flex-wrap: wrap;">
+            @foreach (var lang in Content.Languages)
+            {
+                var isActive = Progress.CurrentLanguage == lang.Id;
+                <div class="chip @(lang.AccentClass) @(isActive ? "on" : "")" 
+                     @onclick="() => SelectLanguage(lang.Id)">
+                    <span>@lang.Emoji</span>
+                    <span>@lang.DisplayName</span>
+                </div>
+            }
+        </div>
+
+        @if (CurrentCurriculum != null)
+        {
+            <!-- Tracks and Lesson Path Nodes -->
+            @for (int tIdx = 0; tIdx < CurrentCurriculum.Tracks.Count; tIdx++)
+            {
+                var track = CurrentCurriculum.Tracks[tIdx];
+                var isTrackUnlocked = tIdx == 0 || IsPreviousTrackFinished(tIdx);
+
+                <div style="width: 100%; max-width: 580px; display: flex; flex-direction: column; align-items: center; gap: 18px; margin-bottom: 24px;">
+                    <!-- Track Header -->
+                    <div class="track-header @(!isTrackUnlocked ? "locked" : "")">
+                        <div>
+                            <h2>@track.Title</h2>
+                            <p>
+                                @if (isTrackUnlocked)
+                                {
+                                    <span>@track.Lessons.Count lessons available</span>
+                                }
+                                else
+                                {
+                                    <span>Finish earlier tracks to unlock</span>
+                                }
+                            </p>
+                        </div>
+                        @if (isTrackUnlocked)
+                        {
+                            <button class="btn o sm" style="height: 40px; padding: 0 18px; font-size: 15px;" @onclick="() => OpenGuide(track)">
+                                Guide
+                            </button>
+                        }
+                    </div>
+
+                    <!-- Lesson Path Nodes -->
+                    @if (isTrackUnlocked)
+                    {
+                        var horizontalOffsets = new[] { "-36px", "0px", "36px", "0px" };
+
+                        @for (int lIdx = 0; lIdx < track.Lessons.Count; lIdx++)
+                        {
+                            var lesson = track.Lessons[lIdx];
+                            var offset = horizontalOffsets[lIdx % horizontalOffsets.Length];
+                            var isCompleted = Progress.IsLessonCompleted(lesson.Id);
+                            var isCurrent = !isCompleted && (lIdx == 0 || Progress.IsLessonCompleted(track.Lessons[lIdx - 1].Id));
+                            var isLocked = !isCompleted && !isCurrent;
+
+                            <div style="position: relative; left: @offset; margin: 6px 0;" class="anim-fade-up">
+                                @if (isCurrent)
+                                {
+                                    <div style="position: absolute; top: -46px; left: 50%; transform: translateX(-50%); background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 6px 14px; font-weight: 700; font-size: 14px; color: var(--p); white-space: nowrap; box-shadow: 0 4px 0 var(--line); z-index: 2;">
+                                        Start
+                                    </div>
+                                }
+
+                                <div class="lesson-node @(isCompleted ? "" : isCurrent ? "current" : "locked")"
+                                     title="@lesson.Title"
+                                     @onclick="() => StartLesson(track.Id, lesson.Id, isLocked)">
+                                    @if (isCompleted)
+                                    {
+                                        <span>✓</span>
+                                    }
+                                    else if (isCurrent)
+                                    {
+                                        <span>★</span>
+                                    }
+                                    else
+                                    {
+                                        <span>🔒</span>
+                                    }
+                                </div>
+
+                                <div style="text-align: center; margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--mut); max-width: 110px;">
+                                    @lesson.Title
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Right Rail Stats & Quizzes -->
+    <aside class="right-rail">
+        <!-- Top Pills -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="pill" style="color: var(--sund);" title="Day Streak">🔥 @Progress.Streak</span>
+            <span class="pill" style="color: var(--sky);" title="Total XP">◆ @Progress.Xp</span>
+            @if (Progress.HeartsEnabled)
+            {
+                <span class="pill" style="color: var(--co);" title="Hearts">♥ @Progress.Hearts</span>
+            }
+            else
+            {
+                <span class="pill" style="color: var(--mintd);" title="Accuracy">🎯 92%</span>
+            }
+        </div>
+
+        <!-- Daily Goal Card -->
+        <div class="card">
+            <div style="font-weight: 700; font-size: 19px; margin-bottom: 12px;">Daily goal</div>
+            <div class="bar">
+                <i class="bar-fill sun" style="width: @(Math.Min(100, (int)Math.Round(Progress.DailyXp * 100.0 / Math.Max(1, Progress.DailyGoal))))%;"></i>
+            </div>
+            <div style="margin-top: 8px; color: var(--mut); font-size: 14px;">
+                @Progress.DailyXp of @Progress.DailyGoal XP earned today
+            </div>
+        </div>
+
+        <!-- Make a Quiz Promo Card -->
+        <div class="card" style="display: flex; gap: 16px; align-items: center;">
+            <div class="mascot sm">
+                <i class="eye"></i>
+                <i class="eye"></i>
+                <b class="mouth"></b>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 17px; margin-bottom: 6px;">Make a quiz</div>
+                <button class="btn sm" style="height: 38px; padding: 0 16px; font-size: 14px;" @onclick='() => Nav.NavigateTo("/create")'>
+                    Create
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Syntax Tip Card -->
+        <div class="card" style="background: var(--bg); border-style: dashed;">
+            <div style="font-weight: 700; font-size: 16px; margin-bottom: 6px;">💡 Pro Tip</div>
+            <p style="font-size: 13px; line-height: 1.45; color: var(--mut);">
+                Practice syntax daily to build tactile memory. In Create mode you can test peers with real snippets!
+            </p>
+        </div>
+    </aside>
+</div>
+
+<!-- Syntax Guide Modal -->
+@if (_activeGuideTrack != null)
+{
+    <div style="position: fixed; inset: 0; background: rgba(38,34,74,.4); display: flex; align-items: center; justify-content: center; z-index: 1000;" @onclick="CloseGuide">
+        <div class="card anim-pop" style="width: 520px; max-height: 80vh; overflow-y: auto; padding: 28px; position: relative;" @onclick:stopPropagation="true">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                <h2 style="font-size: 24px; font-weight: 700;">@_activeGuideTrack.Title Guide</h2>
+                <button class="btn o sm" style="height: 32px; width: 32px; padding: 0; font-size: 18px; border-radius: 50%;" @onclick="CloseGuide">×</button>
+            </div>
+            <p style="color: var(--mut); margin-bottom: 16px; font-size: 15px;">
+                Key syntax cheat sheet for <strong>@CurrentCurriculum?.DisplayName</strong>:
+            </p>
+            <div class="code-window" style="padding: 16px; margin-bottom: 16px;">
+                @if (Progress.CurrentLanguage == "python")
+                {
+                    <div style="font-size: 14px; line-height: 1.8;">
+                        <span class="cm"># Python Syntax Primer</span><br />
+                        <span class="kw">for</span> item <span class="kw">in</span> range(5):<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">print</span>(item)<br /><br />
+                        <span class="kw">def</span> <span class="fn">greet</span>(name):<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> <span class="st">f"Hello {name}"</span>
+                    </div>
+                }
+                else if (Progress.CurrentLanguage == "javascript")
+                {
+                    <div style="font-size: 14px; line-height: 1.8;">
+                        <span class="cm">// JavaScript Syntax Primer</span><br />
+                        <span class="kw">for</span> (<span class="kw">let</span> i = 0; i &lt; 5; i++) {<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;console.<span class="fn">log</span>(i);<br />
+                        }<br /><br />
+                        <span class="kw">const</span> <span class="fn">greet</span> = (name) =&gt; <span class="st">`Hello ${name}`</span>;
+                    </div>
+                }
+                else
+                {
+                    <div style="font-size: 14px; line-height: 1.8;">
+                        <span class="cm">// C++ Syntax Primer</span><br />
+                        #include &lt;iostream&gt;<br />
+                        <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; 5; i++) {<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;std::cout &lt;&lt; i &lt;&lt; <span class="st">"\n"</span>;<br />
+                        }
+                    </div>
+                }
+            </div>
+            <button class="btn" style="width: 100%;" @onclick="CloseGuide">Got it</button>
+        </div>
+    </div>
+}
+
+@code {
+    private LanguageCurriculum? CurrentCurriculum => Content.GetLanguage(Progress.CurrentLanguage);
+    private Track? _activeGuideTrack = null;
+
+    protected override void OnInitialized()
+    {
+        Progress.OnChange += StateHasChanged;
+    }
+
+    private void SelectLanguage(string langId)
+    {
+        Progress.SetLanguage(langId);
+    }
+
+    private bool IsPreviousTrackFinished(int trackIndex)
+    {
+        if (CurrentCurriculum == null || trackIndex <= 0) return true;
+        var prevTrack = CurrentCurriculum.Tracks[trackIndex - 1];
+        return prevTrack.Lessons.All(l => Progress.IsLessonCompleted(l.Id));
+    }
+
+    private void StartLesson(string trackId, string lessonId, bool isLocked)
+    {
+        if (isLocked) return;
+        Nav.NavigateTo($"/lesson/{Progress.CurrentLanguage}/{trackId}/{lessonId}");
+    }
+
+    private void OpenGuide(Track track)
+    {
+        _activeGuideTrack = track;
+    }
+
+    private void CloseGuide()
+    {
+        _activeGuideTrack = null;
+    }
+
+    public void Dispose()
+    {
+        Progress.OnChange -= StateHasChanged;
+    }
+}

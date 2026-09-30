@@ -1,0 +1,16 @@
+@page "/not-found"
+@layout EmptyLayout
+@inject NavigationManager Nav
+
+<div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; text-align: center; padding: 20px;">
+    <div class="mascot sm sad" style="width: 64px; height: 64px; border-radius: 20px;">
+        <i class="eye"></i>
+        <i class="eye"></i>
+        <b class="mouth"></b>
+    </div>
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--ink);">Page Not Found</h1>
+    <p style="color: var(--mut); font-size: 16px; max-width: 400px;">
+        Looks like this syntax doesn't compile! The page you were looking for doesn't exist.
+    </p>
+    <button class="btn" @onclick='() => Nav.NavigateTo("/learn")'>Return to Learn</button>
+</div>

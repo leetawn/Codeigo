@@ -1,0 +1,50 @@
+@page "/practice"
+@inject ContentService Content
+@inject ProgressService Progress
+@inject NavigationManager Nav
+
+<PageTitle>Practice — Codeigo</PageTitle>
+
+<div style="padding: 36px 48px; max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px;" class="anim-fade-up">
+    <div>
+        <h1 style="font-size: 36px; font-weight: 700; color: var(--ink);">Practice Drills</h1>
+        <p style="color: var(--mut); margin-top: 4px;">Targeted exercises to reinforce syntax memory and fix weak spots.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-color: var(--sun);">
+            <div>
+                <div class="logo-icon" style="background: var(--sun); box-shadow: 0 3px 0 var(--sund); margin-bottom: 14px;">⚡</div>
+                <h3 style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">Rapid Loops Drill</h3>
+                <p style="color: var(--mut); font-size: 15px; line-height: 1.45;">
+                    Test bounds, syntax headers, and iterations across for and while loops.
+                </p>
+            </div>
+            <button class="btn" style="margin-top: 20px;" @onclick='() => Nav.NavigateTo($"/lesson/{Progress.CurrentLanguage}/loops/py-loops-1")'>
+                Start Drill (+15 XP)
+            </button>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-color: var(--mint);">
+            <div class="logo-icon" style="background: var(--mint); box-shadow: 0 3px 0 var(--mintd); margin-bottom: 14px;">✓</div>
+            <h3 style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">Basics & Types Refresh</h3>
+            <p style="color: var(--mut); font-size: 15px; line-height: 1.45;">
+                Revisit variable declarations, assignments, and type rules.
+            </p>
+            <button class="btn g" style="margin-top: 20px;" @onclick='() => Nav.NavigateTo($"/lesson/{Progress.CurrentLanguage}/basics/py-basics-1")'>
+                Start Drill (+10 XP)
+            </button>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-color: var(--sky);">
+            <div class="logo-icon" style="background: var(--sky); box-shadow: 0 3px 0 var(--skyd); margin-bottom: 14px;">+</div>
+            <h3 style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">Custom Quiz Arena</h3>
+            <p style="color: var(--mut); font-size: 15px; line-height: 1.45;">
+                Jump directly into community-authored and self-made quizzes.
+            </p>
+            <button class="btn o" style="margin-top: 20px;" @onclick='() => Nav.NavigateTo("/create")'>
+                Browse Quizzes &rarr;
+            </button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,120 @@
+@page "/profile"
+@inject ProgressService Progress
+@inject ContentService Content
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Profile — Codeigo</PageTitle>
+
+<div style="padding: 36px 48px; max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px;" class="anim-fade-up">
+    
+    <!-- User Card -->
+    <div class="card" style="display: flex; gap: 24px; align-items: center; padding: 32px;">
+        <div class="mascot lg">
+            <i class="eye"></i>
+            <i class="eye"></i>
+            <b class="mouth"></b>
+        </div>
+        <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h1 style="font-size: 32px; font-weight: 700;">@Progress.UserName</h1>
+                    <div style="color: var(--mut); margin-top: 2px;">Joined September 2026 • Syntax Enthusiast</div>
+                </div>
+                @if (Progress.IsLoggedIn)
+                {
+                    <button class="btn o sm" @onclick="Progress.Logout">Log Out</button>
+                }
+                else
+                {
+                    <button class="btn sm" @onclick='() => Progress.Login("Ethan")'>Sign In</button>
+                }
+            </div>
+
+            <div style="display: flex; gap: 24px; margin-top: 20px;">
+                <div>
+                    <span class="pill" style="color: var(--sund);">🔥 @Progress.Streak</span>
+                    <span style="font-size: 13px; color: var(--mut);">Day streak</span>
+                </div>
+                <div>
+                    <span class="pill" style="color: var(--sky);">◆ @Progress.Xp</span>
+                    <span style="font-size: 13px; color: var(--mut);">Total XP</span>
+                </div>
+                <div>
+                    <span class="pill" style="color: var(--mintd);">🎯 94%</span>
+                    <span style="font-size: 13px; color: var(--mut);">Avg accuracy</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Per-Language Progress -->
+    <div>
+        <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 16px;">Language mastery</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+            @foreach (var lang in Content.Languages)
+            {
+                var totalLessons = lang.Tracks.Sum(t => t.Lessons.Count);
+                var completedLessons = lang.Tracks.Sum(t => t.Lessons.Count(l => Progress.IsLessonCompleted(l.Id)));
+                var pct = totalLessons > 0 ? (int)Math.Round(completedLessons * 100.0 / totalLessons) : 0;
+
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="font-size: 20px; font-weight: 700;">@lang.Emoji @lang.DisplayName</span>
+                        <span class="tag @lang.AccentClass">@completedLessons / @totalLessons</span>
+                    </div>
+                    <div class="bar">
+                        <i class="bar-fill" style="width: @pct%;"></i>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 13px; color: var(--mut); display: flex; justify-content: space-between;">
+                        <span>@pct% completed</span>
+                        <a href="learn" style="color: var(--p); font-weight: 600; cursor: pointer;" @onclick="() => Progress.SetLanguage(lang.Id)">Practice &rarr;</a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Badges & Achievements -->
+    <div>
+        <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 16px;">Badges earned</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+            <div class="card" style="text-align: center; padding: 20px;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🔥</div>
+                <div style="font-weight: 700; font-size: 16px;">Wildfire</div>
+                <div style="font-size: 13px; color: var(--mut); margin-top: 4px;">Reached a 10-day streak</div>
+            </div>
+
+            <div class="card" style="text-align: center; padding: 20px;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🐍</div>
+                <div style="font-weight: 700; font-size: 16px;">Pythonista</div>
+                <div style="font-size: 13px; color: var(--mut); margin-top: 4px;">Completed Python Basics</div>
+            </div>
+
+            <div class="card" style="text-align: center; padding: 20px;">
+                <div style="font-size: 40px; margin-bottom: 8px;">🛠️</div>
+                <div style="font-weight: 700; font-size: 16px;">Quiz Creator</div>
+                <div style="font-size: 13px; color: var(--mut); margin-top: 4px;">Created a custom quiz</div>
+            </div>
+
+            <div class="card" style="text-align: center; padding: 20px; opacity: .5; background: var(--bg); border-style: dashed;">
+                <div style="font-size: 40px; margin-bottom: 8px;">⚡</div>
+                <div style="font-weight: 700; font-size: 16px;">Polyglot</div>
+                <div style="font-size: 13px; color: var(--mut); margin-top: 4px;">Complete 3 languages</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Progress.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Progress.OnChange -= StateHasChanged;
+    }
+}

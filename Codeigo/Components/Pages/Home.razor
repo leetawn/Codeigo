@@ -1,0 +1,233 @@
+@page "/"
+@layout EmptyLayout
+@inject NavigationManager Nav
+@inject ProgressService Progress
+
+<PageTitle>Codeigo — Learn Syntax in Five-Minute Drills</PageTitle>
+
+<div style="background: #fff; min-height: 100vh; display: flex; flex-direction: column;">
+    <!-- Top Navigation Bar -->
+    <header class="landing-nav">
+        <div class="logo" style="padding: 0;" @onclick='() => Nav.NavigateTo("/")'>
+            <span class="logo-icon">{}</span>
+            <span>Codeigo</span>
+        </div>
+        <div style="display: flex; gap: 28px; align-items: center; font-weight: 600; color: var(--mut);">
+            <a href="learn" style="cursor: pointer;">Languages</a>
+            <a href="create" style="cursor: pointer;">Create mode</a>
+            @if (Progress.IsLoggedIn)
+            {
+                <span style="color: var(--ink);">Hi, @Progress.UserName</span>
+                <button class="btn sm" @onclick='() => Nav.NavigateTo("/learn")'>Open App</button>
+            }
+            else
+            {
+                <button class="btn o sm" @onclick='() => { Progress.Login("Ethan"); Nav.NavigateTo("/learn"); }'>Log in</button>
+            }
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="landing-section" style="padding-top: 56px; padding-bottom: 56px; display: flex; gap: 56px; align-items: center; background: var(--bg);">
+        <div style="flex: 1; max-width: 560px; display: flex; flex-direction: column; gap: 24px;">
+            <h1 style="font-size: 60px; line-height: 1.05; font-weight: 700; color: var(--ink);">
+                Learn to code in five-minute drills
+            </h1>
+            <p style="font-size: 21px; line-height: 1.45; color: var(--mut);">
+                Practice real syntax in Python, JavaScript, and C++. Short lessons, instant feedback, and quizzes you can make yourself.
+            </p>
+            <div style="display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap;">
+                <button class="btn lg" @onclick='() => Nav.NavigateTo("/learn")'>Get started</button>
+                <button class="btn o lg" @onclick='() => { Progress.Login("Ethan"); Nav.NavigateTo("/learn"); }'>I already have an account</button>
+            </div>
+        </div>
+
+        <!-- Interactive Demo Card -->
+        <div style="flex: 1; max-width: 540px;">
+            <div class="card anim-pop" style="border-radius: 28px; padding: 28px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 8px 0 var(--line);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="tag">Fill in the blank</span>
+                    <span class="pill" style="color: var(--mintd); font-size: 16px;">✦ Interactive Demo</span>
+                </div>
+                <div style="font-size: 22px; font-weight: 700;">Finish the loop so it runs 5 times</div>
+                
+                <div class="code-window">
+                    <div class="code-line" style="font-size: 18px;">
+                        <span class="ln-num" style="width: 44px; padding-right: 16px;">1</span>
+                        <span><b class="kw">for</b> i <b class="kw">in</b> <span class="blank @(_demoChoice == "range" ? "ok" : _demoChoice != null ? "bad" : "")" style="min-width: 84px;">@(_demoChoice ?? "_____")</span>(5):</span>
+                    </div>
+                    <div class="code-line" style="font-size: 18px;">
+                        <span class="ln-num" style="width: 44px; padding-right: 16px;">2</span>
+                        <span>    <b class="fn">print</b>(i)</span>
+                    </div>
+                </div>
+
+                <!-- Choice keys -->
+                <div style="display: flex; gap: 10px;">
+                    <div class="key-chip @(_demoChoice == "range" ? "used" : "")" style="height: 48px; font-size: 16px;" @onclick='() => SelectDemoKey("range")'>range</div>
+                    <div class="key-chip @(_demoChoice == "len" ? "used" : "")" style="height: 48px; font-size: 16px;" @onclick='() => SelectDemoKey("len")'>len</div>
+                    <div class="key-chip @(_demoChoice == "while" ? "used" : "")" style="height: 48px; font-size: 16px;" @onclick='() => SelectDemoKey("while")'>while</div>
+                </div>
+
+                @if (_demoChoice == "range")
+                {
+                    <div class="anim-fade-up" style="background: #D9FBEC; border-radius: 18px; padding: 14px 18px; display: flex; gap: 16px; align-items: center; color: var(--mintd);">
+                        <div class="mascot sm" style="width: 44px; height: 44px; border-radius: 15px;">
+                            <i class="eye" style="top: 14px; left: 10px; width: 7px; height: 10px;"></i>
+                            <i class="eye" style="top: 14px; right: 10px; width: 7px; height: 10px;"></i>
+                            <b class="mouth" style="left: 16px; top: 29px; width: 12px; height: 6px;"></b>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 18px;">Nicely done!</div>
+                            <div style="font-size: 14px;">range(5) counts from 0 to 4 in Python.</div>
+                        </div>
+                        <button class="btn g sm" @onclick='() => Nav.NavigateTo("/learn")'>Try More</button>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(_demoChoice))
+                {
+                    <div class="anim-shake" style="background: #FFE3E6; border-radius: 18px; padding: 14px 18px; display: flex; gap: 16px; align-items: center; color: var(--cod);">
+                        <div class="mascot sm sad" style="width: 44px; height: 44px; border-radius: 15px;">
+                            <i class="eye" style="top: 14px; left: 10px; width: 7px; height: 10px;"></i>
+                            <i class="eye" style="top: 14px; right: 10px; width: 7px; height: 10px;"></i>
+                            <b class="mouth" style="left: 16px; top: 31px; width: 12px; height: 6px;"></b>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 18px;">Not quite</div>
+                            <div style="font-size: 14px;">Try selecting <code>range</code> to generate a sequence!</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Language Selector Cards -->
+    <section class="landing-section" style="padding-top: 64px; padding-bottom: 32px; text-align: center;">
+        <h2 style="font-size: 36px; font-weight: 700; margin-bottom: 24px;">Pick a language and start typing</h2>
+        <div style="display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+            <div class="card" style="width: 270px; border-color: var(--sky); cursor: pointer; text-align: left; transition: transform .15s;" 
+                 @onclick='() => ChooseLangAndStart("python")'>
+                <div style="font-size: 26px; font-weight: 700; color: var(--skyd);">🐍 Python</div>
+                <div style="color: var(--mut); margin-top: 6px;">5 tracks, 15+ lessons</div>
+                <div style="margin-top: 16px; display: flex; align-items: center; gap: 6px; color: var(--skyd); font-weight: 700; font-size: 15px;">
+                    Start Python &rarr;
+                </div>
+            </div>
+
+            <div class="card" style="width: 270px; border-color: var(--sun); cursor: pointer; text-align: left; transition: transform .15s;" 
+                 @onclick='() => ChooseLangAndStart("javascript")'>
+                <div style="font-size: 26px; font-weight: 700; color: var(--sund);">🟨 JavaScript</div>
+                <div style="color: var(--mut); margin-top: 6px;">5 tracks, 12+ lessons</div>
+                <div style="margin-top: 16px; display: flex; align-items: center; gap: 6px; color: var(--sund); font-weight: 700; font-size: 15px;">
+                    Start JavaScript &rarr;
+                </div>
+            </div>
+
+            <div class="card" style="width: 270px; border-color: var(--co); cursor: pointer; text-align: left; transition: transform .15s;" 
+                 @onclick='() => ChooseLangAndStart("cpp")'>
+                <div style="font-size: 26px; font-weight: 700; color: var(--cod);">⚙️ C++</div>
+                <div style="color: var(--mut); margin-top: 6px;">5 tracks, 10+ lessons</div>
+                <div style="margin-top: 16px; display: flex; align-items: center; gap: 6px; color: var(--cod); font-weight: 700; font-size: 15px;">
+                    Start C++ &rarr;
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Three Value Pillars -->
+    <section class="landing-section" style="display: flex; gap: 24px; padding-top: 48px; padding-bottom: 48px; flex-wrap: wrap;">
+        <div class="card" style="flex: 1; min-width: 280px; padding: 28px;">
+            <div class="logo-icon" style="background: var(--sun); box-shadow: 0 3px 0 var(--sund);">5</div>
+            <h3 style="font-size: 24px; font-weight: 700; margin: 16px 0 8px;">Short lessons</h3>
+            <p style="color: var(--mut); font-size: 17px; line-height: 1.45;">
+                Each lesson is five to ten quick exercises. Finish one in the time it takes to brew coffee.
+            </p>
+        </div>
+
+        <div class="card" style="flex: 1; min-width: 280px; padding: 28px;">
+            <div class="logo-icon" style="background: var(--mint); box-shadow: 0 3px 0 var(--mintd);">✓</div>
+            <h3 style="font-size: 24px; font-weight: 700; margin: 16px 0 8px;">Feedback that teaches</h3>
+            <p style="color: var(--mut); font-size: 17px; line-height: 1.45;">
+                Mistakes show up with plain-English explanations of syntax and semantics, not cryptic walls of text.
+            </p>
+        </div>
+
+        <div class="card" style="flex: 1; min-width: 280px; padding: 28px;">
+            <div class="logo-icon" style="background: var(--sky); box-shadow: 0 3px 0 var(--skyd);">+</div>
+            <h3 style="font-size: 24px; font-weight: 700; margin: 16px 0 8px;">Make your own quizzes</h3>
+            <p style="color: var(--mut); font-size: 17px; line-height: 1.45;">
+                Turn any code snippet into a drill with the Create mode builder, then share it with students or peers.
+            </p>
+        </div>
+    </section>
+
+    <!-- Create Mode Feature Callout -->
+    <section class="landing-section" style="display: flex; gap: 56px; align-items: center; background: var(--bg); flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 320px; display: flex; flex-direction: column; gap: 18px;">
+            <h2 style="font-size: 44px; line-height: 1.1; font-weight: 700;">Build a quiz in a minute</h2>
+            <p style="font-size: 19px; line-height: 1.45; color: var(--mut);">
+                Pick a question type, paste your code, and mark the blank with <code>[[ ]]</code>. Codeigo extracts tokens and generates live interactive previews instantly.
+            </p>
+            <div>
+                <button class="btn" @onclick='() => Nav.NavigateTo("/create")'>Try Create mode</button>
+            </div>
+        </div>
+
+        <div class="card" style="flex: 1; min-width: 320px; padding: 24px; display: flex; flex-direction: column; gap: 6px;">
+            <div class="lbl">Question type</div>
+            <div class="inp" style="margin-bottom: 12px; pointer-events: none;">Fill in the blank</div>
+            <div class="lbl">Code (wrap the blank in [[ ]])</div>
+            <div class="inp code-inp" style="margin: 0; min-height: 90px;">for i in [[range]](5):
+    print(i)</div>
+        </div>
+    </section>
+
+    <!-- Bottom Mascot CTA Banner -->
+    <section class="landing-section" style="padding-top: 64px; padding-bottom: 64px;">
+        <div style="background: var(--p); border-radius: 32px; padding: 48px 56px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 0 var(--pd); flex-wrap: wrap; gap: 24px;">
+            <div style="display: flex; gap: 28px; align-items: center;">
+                <div class="mascot" style="background: #fff; box-shadow: 0 4px 0 var(--line);">
+                    <i class="eye" style="background: var(--p);"></i>
+                    <i class="eye" style="background: var(--p);"></i>
+                    <b class="mouth"></b>
+                </div>
+                <div style="color: #fff;">
+                    <div style="font-size: 36px; font-weight: 700;">Write your first line today</div>
+                    <div style="font-size: 18px; opacity: .9; margin-top: 4px;">Free to start. No setup, no installs.</div>
+                </div>
+            </div>
+            <button class="btn lg" style="background: #fff; color: var(--p); box-shadow: 0 4px 0 var(--line);" @onclick='() => Nav.NavigateTo("/learn")'>
+                Get started
+            </button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="max-width: 1280px; width: 100%; margin: auto auto 0; padding: 28px 96px 40px; display: flex; justify-content: space-between; align-items: center; color: var(--mut); font-size: 15px;">
+        <div class="logo" style="padding: 0; font-size: 22px;">
+            <span class="logo-icon" style="width: 28px; height: 28px; font-size: 12px;">{}</span>
+            <span>Codeigo</span>
+        </div>
+        <div style="display: flex; gap: 24px; align-items: center;">
+            <a href="learn" style="color: var(--mut);">Learn</a>
+            <a href="create" style="color: var(--mut);">Create</a>
+            <a href="profile" style="color: var(--mut);">Profile</a>
+        </div>
+    </footer>
+</div>
+
+@code {
+    private string? _demoChoice = null;
+
+    private void SelectDemoKey(string key)
+    {
+        _demoChoice = key;
+    }
+
+    private void ChooseLangAndStart(string lang)
+    {
+        Progress.SetLanguage(lang);
+        Nav.NavigateTo("/learn");
+    }
+}

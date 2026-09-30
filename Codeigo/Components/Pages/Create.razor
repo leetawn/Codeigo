@@ -1,0 +1,605 @@
+@page "/create"
+@inject QuizService Quizzes
+@inject ProgressService Progress
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>Create Mode — Codeigo</PageTitle>
+
+@if (_currentView == ViewMode.List)
+{
+    <!-- ── View 1: My Quizzes List ──────────────────────────────────────── -->
+    <div style="padding: 36px 48px; max-width: 1200px; margin: 0 auto;" class="anim-fade-up">
+        
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h1 style="font-size: 36px; font-weight: 700; color: var(--ink);">My quizzes</h1>
+                <p style="color: var(--mut); margin-top: 4px;">Build and share custom syntax drills for any language.</p>
+            </div>
+            
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <!-- Enter Share Code Input -->
+                <div style="display: flex; gap: 6px;">
+                    <input class="inp" style="margin: 0; width: 170px; height: 46px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;" 
+                           placeholder="SHARE CODE" 
+                           @bind="_enterShareCode" />
+                    <button class="btn o sm" style="height: 46px;" @onclick="PlayByShareCode">Play</button>
+                </div>
+
+                <button class="btn" @onclick="CreateNewQuiz">New quiz</button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_shareCodeError))
+        {
+            <div style="color: var(--cod); background: #FFE3E6; padding: 10px 16px; border-radius: 12px; margin-bottom: 20px; font-weight: 600;">
+                @_shareCodeError
+            </div>
+        }
+
+        <!-- Quizzes Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+            @foreach (var quiz in Quizzes.GetQuizzes())
+            {
+                var tagClass = quiz.Language == "python" ? "py" : quiz.Language == "javascript" ? "js" : "cpp";
+
+                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 180px;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="tag @tagClass">@(char.ToUpper(quiz.Language[0]) + quiz.Language[1..])</span>
+                            <span style="font-size: 13px; font-weight: 600; color: var(--mut); font-family: 'JetBrains Mono', monospace;">
+                                @quiz.ShareCode
+                            </span>
+                        </div>
+                        <div style="font-size: 21px; font-weight: 700; margin: 14px 0 4px; color: var(--ink);">
+                            @quiz.Title
+                        </div>
+                        <div style="color: var(--mut); font-size: 14px;">
+                            @quiz.Exercises.Count questions, @quiz.Visibility.ToString().ToLower()
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 18px; align-items: center;">
+                        <button class="btn g sm" style="flex: 1;" @onclick='() => Nav.NavigateTo($"/quiz/play/{quiz.Id}")'>
+                            Play
+                        </button>
+                        <button class="btn o sm" @onclick="() => EditQuiz(quiz)">
+                            Edit
+                        </button>
+                        <button class="btn o sm" title="Copy share code" @onclick="() => CopyShare(quiz)">
+                            Share
+                        </button>
+                        <button class="btn o sm" style="color: var(--cod); border-color: var(--co);" title="Delete" @onclick="() => DeleteQuiz(quiz.Id)">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            }
+
+            <!-- Create a quiz dashed card -->
+            <div class="card" 
+                 style="border-style: dashed; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--p); font-weight: 700; font-size: 18px; min-height: 180px; cursor: pointer; transition: background .15s;" 
+                 @onclick="CreateNewQuiz">
+                <span style="font-size: 32px; line-height: 1; margin-bottom: 8px;">+</span>
+                <span>Create a quiz</span>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- ── View 2: Quiz Editor & Live Preview ────────────────────────────── -->
+    <div style="display: flex; height: 100vh; overflow: hidden;" class="anim-fade-up">
+        
+        <!-- Column 1: Questions List Sidebar -->
+        <div style="width: 270px; flex: none; border-right: 2px solid var(--line); padding: 24px 16px; display: flex; flex-direction: column; gap: 10px; background: #fff; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn o sm" style="height: 32px; font-size: 13px;" @onclick="BackToList">
+                    &larr; Quizzes
+                </button>
+                <span class="tag">@_activeQuiz.Language</span>
+            </div>
+
+            <div style="font-weight: 700; font-size: 19px; margin-top: 6px; word-break: break-word;">
+                @_activeQuiz.Title
+            </div>
+
+            <div style="font-size: 13px; color: var(--mut); margin-bottom: 4px;">
+                @_activeQuiz.Exercises.Count questions
+            </div>
+
+            <!-- List of Questions -->
+            <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto;">
+                @for (int i = 0; i < _activeQuiz.Exercises.Count; i++)
+                {
+                    var idx = i;
+                    var q = _activeQuiz.Exercises[i];
+                    var isSelected = _selectedQuestionIndex == idx;
+
+                    <div class="qi @(isSelected ? "on" : "")" @onclick="() => SelectQuestion(idx)">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>@(idx + 1). @GetExerciseTypeLabel(q.Type)</span>
+                            @if (_activeQuiz.Exercises.Count > 1)
+                            {
+                                <span style="color: var(--mut); cursor: pointer;" title="Delete question" @onclick="() => RemoveQuestion(idx)" @onclick:stopPropagation="true">×</span>
+                            }
+                        </div>
+                        <small>@(string.IsNullOrEmpty(q.Prompt) ? "No prompt yet" : q.Prompt.Length > 28 ? q.Prompt[..28] + "..." : q.Prompt)</small>
+                    </div>
+                }
+            </div>
+
+            <button class="btn o" style="height: 44px; margin-top: 6px; font-size: 15px;" @onclick="AddQuestion">
+                + Add question
+            </button>
+        </div>
+
+        <!-- Column 2: Question Builder Form -->
+        <div style="width: 440px; flex: none; padding: 28px 24px; overflow-y: auto; background: #fff; border-right: 2px solid var(--line);">
+            <!-- Quiz Metadata Settings -->
+            <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--line);">
+                <label class="lbl">Quiz title</label>
+                <input class="inp" @bind="_activeQuiz.Title" placeholder="e.g. List slicing warm-up" />
+
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label class="lbl">Language</label>
+                        <select class="inp" @bind="_activeQuiz.Language">
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="cpp">C++</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="lbl">Visibility</label>
+                        <select class="inp" @bind="_activeQuiz.Visibility">
+                            <option value="@QuizVisibility.Unlisted">Unlisted (link)</option>
+                            <option value="@QuizVisibility.Private">Private</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Question Editor -->
+            @if (CurrentQuestion != null)
+            {
+                <label class="lbl">Question type</label>
+                <select class="inp" @bind="CurrentQuestion.Type" @bind:after="OnTypeChanged">
+                    <option value="@ExerciseType.FillBlank">Fill in the blank</option>
+                    <option value="@ExerciseType.MultipleChoice">Multiple choice</option>
+                    <option value="@ExerciseType.PredictOutput">Predict the output</option>
+                    <option value="@ExerciseType.ArrangeCode">Arrange the code</option>
+                    <option value="@ExerciseType.TypeItOut">Type it out</option>
+                </select>
+
+                <label class="lbl">Prompt</label>
+                <input class="inp" @bind="CurrentQuestion.Prompt" placeholder="e.g. Finish the loop so it runs 5 times" />
+
+                @switch (CurrentQuestion.Type)
+                {
+                    case ExerciseType.FillBlank:
+                        <label class="lbl">Code (wrap the blank in [[ ]])</label>
+                        <textarea class="inp code-inp" rows="4" @bind="CurrentQuestion.Code" placeholder="for i in [[range]](5):&#10;    print(i)"></textarea>
+
+                        <label class="lbl">Accepted answers (comma separated)</label>
+                        <input class="inp" @bind="_acceptedAnswersRaw" @bind:after="SyncAcceptedAnswers" placeholder="range" />
+                        break;
+
+                    case ExerciseType.MultipleChoice:
+                        <label class="lbl">Code snippet (optional)</label>
+                        <textarea class="inp code-inp" rows="3" @bind="CurrentQuestion.Code" placeholder="nums = [10, 20, 30]"></textarea>
+
+                        <label class="lbl">Options (select radio for correct option):</label>
+                        @for (int oIdx = 0; oIdx < Math.Max(2, CurrentQuestion.Options.Count); oIdx++)
+                        {
+                            var idx = oIdx;
+                            EnsureOptionIndex(idx);
+                            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                                <input type="radio" name="mcCorrect" checked="@(CurrentQuestion.CorrectIndex == idx)" @onchange="() => CurrentQuestion.CorrectIndex = idx" />
+                                <input class="inp" style="margin: 0; flex: 1;" @bind="CurrentQuestion.Options[idx]" placeholder="@($"Option {(char)('A' + idx)}")" />
+                            </div>
+                        }
+                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                            @if (CurrentQuestion.Options.Count < 4)
+                            {
+                                <button class="btn o sm" @onclick="() => CurrentQuestion.Options.Add(string.Empty)">+ Option</button>
+                            }
+                            @if (CurrentQuestion.Options.Count > 2)
+                            {
+                                <button class="btn o sm" @onclick="() => CurrentQuestion.Options.RemoveAt(CurrentQuestion.Options.Count - 1)">- Option</button>
+                            }
+                        </div>
+                        break;
+
+                    case ExerciseType.PredictOutput:
+                        <label class="lbl">Code to inspect</label>
+                        <textarea class="inp code-inp" rows="4" @bind="CurrentQuestion.Code" placeholder="nums = [10, 20, 30]&#10;print(nums[-1])"></textarea>
+
+                        <label class="lbl">Expected output</label>
+                        <textarea class="inp" rows="2" @bind="CurrentQuestion.ExpectedOutput" placeholder="30"></textarea>
+                        break;
+
+                    case ExerciseType.ArrangeCode:
+                        <label class="lbl">Correct code (will be shuffled into tokens)</label>
+                        <textarea class="inp code-inp" rows="4" @bind="CurrentQuestion.Code" placeholder="for enemy in enemies:&#10;    print(enemy)"></textarea>
+                        break;
+
+                    case ExerciseType.TypeItOut:
+                        <label class="lbl">Target line to type</label>
+                        <input class="inp code-inp" @bind="CurrentQuestion.TargetLine" placeholder="print('Game over!')" />
+
+                        <label class="lbl">Accepted alternatives (comma separated)</label>
+                        <input class="inp" @bind="_acceptedAnswersRaw" @bind:after="SyncAcceptedAnswers" placeholder="print(&quot;Game over!&quot;)" />
+                        break;
+                }
+
+                <label class="lbl">Explanation (optional)</label>
+                <textarea class="inp" rows="2" @bind="CurrentQuestion.Explanation" placeholder="range(5) counts from 0 to 4."></textarea>
+            }
+
+            <!-- Bottom Actions -->
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button class="btn o" style="flex: 1;" @onclick="SaveDraft">Save draft</button>
+                <button class="btn" style="flex: 1;" @onclick="PublishQuiz">Publish</button>
+            </div>
+        </div>
+
+        <!-- Column 3: Live Preview Pane -->
+        <div style="flex: 1; background: var(--bg); padding: 28px 36px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="lbl" style="margin: 0; font-size: 16px; font-weight: 700; color: var(--mut);">LIVE PREVIEW</div>
+                <button class="btn o sm" @onclick="TestPlay">Test play &rarr;</button>
+            </div>
+
+            @if (CurrentQuestion != null)
+            {
+                <div class="card anim-pop" style="padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="tag">@GetExerciseTypeLabel(CurrentQuestion.Type)</span>
+                        <span class="pill" style="color: var(--p); font-size: 14px;">Preview Mode</span>
+                    </div>
+
+                    <h2 style="font-size: 24px; font-weight: 700;">
+                        @(string.IsNullOrEmpty(CurrentQuestion.Prompt) ? "Finish the loop so it runs 5 times" : CurrentQuestion.Prompt)
+                    </h2>
+
+                    @if (!string.IsNullOrEmpty(CurrentQuestion.Code))
+                    {
+                        <div class="code-window">
+                            @{
+                                var lines = CurrentQuestion.Code.Replace("\r\n", "\n").Split('\n');
+                            }
+                            @for (int i = 0; i < lines.Length; i++)
+                            {
+                                var lContent = lines[i];
+                                <div class="code-line" style="font-size: 16px;">
+                                    <span class="ln-num" style="width: 40px; padding-right: 14px;">@(i + 1)</span>
+                                    <span>
+                                        @if (lContent.Contains("[["))
+                                        {
+                                            @((MarkupString)System.Text.RegularExpressions.Regex.Replace(
+                                                System.Net.WebUtility.HtmlEncode(lContent),
+                                                @"\[\[(.*?)\]\]",
+                                                "<span class=\"blank\" style=\"min-width:70px;\">&nbsp;</span>"
+                                            ))
+                                        }
+                                        else
+                                        {
+                                            @lContent
+                                        }
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <!-- Preview interactive hints -->
+                    @if (CurrentQuestion.Type == ExerciseType.FillBlank)
+                    {
+                        var previewTokens = CurrentQuestion.AcceptedAnswers.Count > 0 ? CurrentQuestion.AcceptedAnswers : ["range", "len", "while"];
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            @foreach (var tok in previewTokens)
+                            {
+                                <div class="key-chip" style="height: 46px; font-size: 15px;">@tok</div>
+                            }
+                        </div>
+                    }
+                    else if (CurrentQuestion.Type == ExerciseType.MultipleChoice)
+                    {
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            @for (int i = 0; i < CurrentQuestion.Options.Count; i++)
+                            {
+                                var opt = CurrentQuestion.Options[i];
+                                <div class="answer-card" style="padding: 12px 16px;">
+                                    <div class="answer-letter">@((char)('A' + i))</div>
+                                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px;">@(string.IsNullOrEmpty(opt) ? $"Option {(char)('A' + i)}" : opt)</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else if (CurrentQuestion.Type == ExerciseType.PredictOutput)
+                    {
+                        <input class="inp code-inp" placeholder="Type expected output..." disabled />
+                    }
+                    else if (CurrentQuestion.Type == ExerciseType.ArrangeCode)
+                    {
+                        <div class="token-area">
+                            <span class="token">for</span>
+                            <span class="token">enemy</span>
+                            <span class="token">in</span>
+                            <span class="token">enemies:</span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- Require Account Modal (as specified: "No — account required to save any quiz") -->
+@if (_showAuthModal)
+{
+    <div style="position: fixed; inset: 0; background: rgba(38,34,74,.4); display: flex; align-items: center; justify-content: center; z-index: 1000;" @onclick="() => _showAuthModal = false">
+        <div class="card anim-pop" style="width: 440px; padding: 32px; text-align: center; position: relative;" @onclick:stopPropagation="true">
+            <div class="mascot sm" style="margin: 0 auto 16px;">
+                <i class="eye"></i>
+                <i class="eye"></i>
+                <b class="mouth"></b>
+            </div>
+            <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">Account Required</h2>
+            <p style="color: var(--mut); font-size: 15px; margin-bottom: 24px; line-height: 1.45;">
+                To publish and save custom quizzes, you need an account. Sign in or continue as Ethan to link this quiz to your profile.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn" @onclick="AuthenticateAndSave">Sign in as Ethan</button>
+                <button class="btn o" @onclick="() => _showAuthModal = false">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Published / Share Code Modal -->
+@if (_showShareModal)
+{
+    <div style="position: fixed; inset: 0; background: rgba(38,34,74,.4); display: flex; align-items: center; justify-content: center; z-index: 1000;" @onclick="() => _showShareModal = false">
+        <div class="card anim-pop" style="width: 480px; padding: 32px; text-align: center; position: relative;" @onclick:stopPropagation="true">
+            <div class="logo-icon" style="background: var(--mint); box-shadow: 0 3px 0 var(--mintd); width: 48px; height: 48px; font-size: 24px; margin: 0 auto 16px;">✓</div>
+            <h2 style="font-size: 26px; font-weight: 700; margin-bottom: 6px;">Quiz Published!</h2>
+            <p style="color: var(--mut); margin-bottom: 20px;">Share this code with your classmates, students, or friends:</p>
+            
+            <div class="card" style="background: var(--bg); padding: 16px; margin-bottom: 20px;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; letter-spacing: 2px; color: var(--p);">
+                    @_activeQuiz.ShareCode
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+                <button class="btn o" style="flex: 1;" @onclick="TestPlay">Play now</button>
+                <button class="btn" style="flex: 1;" @onclick="() => { _showShareModal = false; BackToList(); }">Done</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private enum ViewMode { List, Editor }
+
+    private ViewMode _currentView = ViewMode.List;
+    private CustomQuiz _activeQuiz = new();
+    private int _selectedQuestionIndex = 0;
+    private string _acceptedAnswersRaw = "";
+    private string _enterShareCode = "";
+    private string? _shareCodeError = null;
+
+    private bool _showAuthModal = false;
+    private bool _showShareModal = false;
+
+    private Exercise? CurrentQuestion =>
+        _activeQuiz.Exercises.Count > _selectedQuestionIndex && _selectedQuestionIndex >= 0
+            ? _activeQuiz.Exercises[_selectedQuestionIndex]
+            : null;
+
+    protected override void OnInitialized()
+    {
+        Progress.OnChange += StateHasChanged;
+    }
+
+    private void CreateNewQuiz()
+    {
+        _activeQuiz = new CustomQuiz
+        {
+            Title = "New Quiz",
+            Language = Progress.CurrentLanguage,
+            AuthorId = Progress.IsLoggedIn ? Progress.UserName : "guest",
+            Exercises =
+            [
+                new Exercise
+                {
+                    Type = ExerciseType.FillBlank,
+                    Prompt = "Finish the loop so it runs 5 times",
+                    Code = "for i in [[range]](5):\n    print(i)",
+                    AcceptedAnswers = ["range"],
+                    Explanation = "range(5) counts from 0 to 4.",
+                    Language = Progress.CurrentLanguage
+                }
+            ]
+        };
+
+        _selectedQuestionIndex = 0;
+        SyncRawAccepted();
+        _currentView = ViewMode.Editor;
+    }
+
+    private void EditQuiz(CustomQuiz quiz)
+    {
+        _activeQuiz = quiz;
+        _selectedQuestionIndex = 0;
+        SyncRawAccepted();
+        _currentView = ViewMode.Editor;
+    }
+
+    private void SelectQuestion(int idx)
+    {
+        _selectedQuestionIndex = idx;
+        SyncRawAccepted();
+    }
+
+    private void AddQuestion()
+    {
+        var newEx = new Exercise
+        {
+            Type = ExerciseType.MultipleChoice,
+            Prompt = "New question prompt",
+            Options = ["Option A", "Option B"],
+            CorrectIndex = 0,
+            Language = _activeQuiz.Language
+        };
+        _activeQuiz.Exercises.Add(newEx);
+        _selectedQuestionIndex = _activeQuiz.Exercises.Count - 1;
+        SyncRawAccepted();
+    }
+
+    private void RemoveQuestion(int idx)
+    {
+        if (_activeQuiz.Exercises.Count <= 1) return;
+        _activeQuiz.Exercises.RemoveAt(idx);
+        if (_selectedQuestionIndex >= _activeQuiz.Exercises.Count)
+        {
+            _selectedQuestionIndex = _activeQuiz.Exercises.Count - 1;
+        }
+        SyncRawAccepted();
+    }
+
+    private void OnTypeChanged()
+    {
+        if (CurrentQuestion == null) return;
+        CurrentQuestion.Language = _activeQuiz.Language;
+        if (CurrentQuestion.Type == ExerciseType.MultipleChoice && CurrentQuestion.Options.Count < 2)
+        {
+            CurrentQuestion.Options = ["Option A", "Option B"];
+            CurrentQuestion.CorrectIndex = 0;
+        }
+    }
+
+    private void EnsureOptionIndex(int idx)
+    {
+        if (CurrentQuestion == null) return;
+        while (CurrentQuestion.Options.Count <= idx)
+        {
+            CurrentQuestion.Options.Add("");
+        }
+    }
+
+    private void SyncRawAccepted()
+    {
+        if (CurrentQuestion != null)
+        {
+            _acceptedAnswersRaw = string.Join(", ", CurrentQuestion.AcceptedAnswers);
+        }
+        else
+        {
+            _acceptedAnswersRaw = "";
+        }
+    }
+
+    private void SyncAcceptedAnswers()
+    {
+        if (CurrentQuestion != null)
+        {
+            CurrentQuestion.AcceptedAnswers = _acceptedAnswersRaw
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .ToList();
+        }
+    }
+
+    private void SaveDraft()
+    {
+        if (!Progress.IsLoggedIn)
+        {
+            _showAuthModal = true;
+            return;
+        }
+
+        Quizzes.SaveQuiz(_activeQuiz);
+        BackToList();
+    }
+
+    private void PublishQuiz()
+    {
+        if (!Progress.IsLoggedIn)
+        {
+            _showAuthModal = true;
+            return;
+        }
+
+        Quizzes.SaveQuiz(_activeQuiz);
+        _showShareModal = true;
+    }
+
+    private void AuthenticateAndSave()
+    {
+        Progress.Login("Ethan");
+        _showAuthModal = false;
+        Quizzes.SaveQuiz(_activeQuiz);
+        _showShareModal = true;
+    }
+
+    private void DeleteQuiz(string id)
+    {
+        Quizzes.DeleteQuiz(id);
+    }
+
+    private void CopyShare(CustomQuiz quiz)
+    {
+        _enterShareCode = quiz.ShareCode;
+    }
+
+    private void PlayByShareCode()
+    {
+        _shareCodeError = null;
+        if (string.IsNullOrWhiteSpace(_enterShareCode))
+        {
+            _shareCodeError = "Please enter a share code.";
+            return;
+        }
+
+        var quiz = Quizzes.GetQuizById(_enterShareCode.Trim());
+        if (quiz != null)
+        {
+            Nav.NavigateTo($"/quiz/play/{quiz.Id}");
+        }
+        else
+        {
+            _shareCodeError = $"No quiz found for share code '{_enterShareCode}'.";
+        }
+    }
+
+    private void TestPlay()
+    {
+        Quizzes.SaveQuiz(_activeQuiz);
+        Nav.NavigateTo($"/quiz/play/{_activeQuiz.Id}");
+    }
+
+    private void BackToList()
+    {
+        _currentView = ViewMode.List;
+    }
+
+    private string GetExerciseTypeLabel(ExerciseType type) => type switch
+    {
+        ExerciseType.MultipleChoice => "Multiple choice",
+        ExerciseType.FillBlank => "Fill in the blank",
+        ExerciseType.ArrangeCode => "Arrange the code",
+        ExerciseType.PredictOutput => "Predict the output",
+        ExerciseType.TypeItOut => "Type it out",
+        _ => "Exercise"
+    };
+
+    public void Dispose()
+    {
+        Progress.OnChange -= StateHasChanged;
+    }
+}

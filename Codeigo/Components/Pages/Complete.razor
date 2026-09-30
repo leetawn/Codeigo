@@ -1,0 +1,104 @@
+@page "/complete/{TargetId}"
+@layout EmptyLayout
+@inject NavigationManager Nav
+@inject ProgressService Progress
+@inject QuizService Quizzes
+
+<PageTitle>Lesson Complete! — Codeigo</PageTitle>
+
+<div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; background: #fff; padding: 32px 20px;">
+    
+    <!-- Mascot Celebration -->
+    <div class="mascot lg anim-pop">
+        <i class="eye"></i>
+        <i class="eye"></i>
+        <b class="mouth"></b>
+    </div>
+
+    <h1 style="font-size: 44px; font-weight: 700; color: var(--p);">
+        @(_isCustomQuiz ? "Quiz complete!" : "Lesson complete!")
+    </h1>
+
+    <!-- 3 Stat Cards: Total XP, Accuracy, Time -->
+    <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+        <div class="card" style="width: 190px; border-color: var(--sun);">
+            <div class="lbl" style="color: var(--sund);">Total XP</div>
+            <div style="font-size: 34px; font-weight: 700; color: var(--sund);">+@EarnedXp</div>
+        </div>
+
+        <div class="card" style="width: 190px; border-color: var(--mint);">
+            <div class="lbl" style="color: var(--mintd);">Accuracy</div>
+            <div style="font-size: 34px; font-weight: 700; color: var(--mintd);">@AccuracyPercent%</div>
+        </div>
+
+        <div class="card" style="width: 190px; border-color: var(--sky);">
+            <div class="lbl" style="color: var(--skyd);">Time</div>
+            <div style="font-size: 34px; font-weight: 700; color: var(--skyd);">@FormattedDuration</div>
+        </div>
+    </div>
+
+    <!-- Streak Banner -->
+    <div class="pill" style="color: var(--sund); font-size: 22px;">
+        🔥 @Progress.Streak day streak
+    </div>
+
+    <!-- Buttons -->
+    <div style="display: flex; gap: 16px; margin-top: 14px; flex-wrap: wrap; justify-content: center;">
+        @if (_isCustomQuiz)
+        {
+            <button class="btn o" @onclick="PlayAgain">
+                Play again
+            </button>
+            <button class="btn o" @onclick="CopyShareCode">
+                @(_copied ? "Code Copied! ✓" : "Share Quiz")
+            </button>
+            <button class="btn" style="width: 200px;" @onclick='() => Nav.NavigateTo("/create")'>
+                My Quizzes
+            </button>
+        }
+        else
+        {
+            <button class="btn o" @onclick='() => Nav.NavigateTo("/learn")'>
+                Review track
+            </button>
+            <button class="btn" style="width: 220px;" @onclick='() => Nav.NavigateTo("/learn")'>
+                Continue
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string TargetId { get; set; } = "";
+
+    [SupplyParameterFromQuery] public int Total { get; set; }
+    [SupplyParameterFromQuery] public int Correct { get; set; }
+    [SupplyParameterFromQuery] public int Sec { get; set; }
+
+    private bool _isCustomQuiz = false;
+    private bool _copied = false;
+
+    private int AccuracyPercent => Total > 0 ? (int)Math.Round(Correct * 100.0 / Total) : 100;
+    private int EarnedXp => Math.Max(10, Correct * 10);
+    private string FormattedDuration => $"{Sec / 60}:{Sec % 60:D2}";
+
+    protected override void OnInitialized()
+    {
+        var quiz = Quizzes.GetQuizById(TargetId);
+        _isCustomQuiz = quiz != null;
+    }
+
+    private void PlayAgain()
+    {
+        Nav.NavigateTo($"/quiz/play/{TargetId}");
+    }
+
+    private void CopyShareCode()
+    {
+        var quiz = Quizzes.GetQuizById(TargetId);
+        if (quiz != null)
+        {
+            _copied = true;
+        }
+    }
+}
