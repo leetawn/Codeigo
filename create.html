@@ -1,0 +1,71 @@
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=1280"><title>Create</title><link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@600&display=swap" rel=stylesheet><style>:root{--p:#5B4BFF;--pd:#3E2FD6;--pt:#ECEAFF;--mint:#22C997;--mintd:#149A73;--sun:#FFC933;--sund:#E0A800;--co:#FF5D6C;--cod:#D93B4B;--sky:#3BB8F5;--skyd:#1F94CC;--bg:#F7F6FF;--ink:#26224A;--mut:#7A7699;--line:#E3E0F5;--code:#231F4D}
+*{box-sizing:border-box;margin:0}
+body{width:1280px;background:#D9D5F0;display:flex;flex-direction:column;gap:40px;font-family:'Fredoka',system-ui,sans-serif;font-weight:500;color:var(--ink)}
+.frame{width:1280px;height:800px;background:#fff;display:flex;overflow:hidden}.col{flex-direction:column}
+.mono{font-family:'JetBrains Mono',Consolas,monospace}
+.side{width:240px;flex:none;padding:24px 16px;border-right:2px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.logo{font-weight:700;font-size:28px;color:var(--p);padding:0 8px 22px;display:flex;align-items:center;gap:10px}
+.lg{width:34px;height:34px;border-radius:11px;background:var(--p);box-shadow:0 3px 0 var(--pd);color:#fff;font:700 15px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center}
+.nav{padding:12px 14px;border-radius:16px;font-weight:600;font-size:16px;display:flex;gap:14px;align-items:center;border:2px solid transparent;color:var(--mut)}
+.nav.on{background:var(--pt);border-color:var(--p);color:var(--p)}
+.ic{width:26px;height:26px;border-radius:9px;background:currentColor;opacity:.4}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 30px;border-radius:16px;font-weight:700;font-size:17px;color:#fff;background:var(--p);box-shadow:0 4px 0 var(--pd)}
+.btn.o{background:#fff;color:var(--p);border:2px solid var(--line);box-shadow:0 4px 0 var(--line)}
+.btn.g{background:var(--mint);box-shadow:0 4px 0 var(--mintd)}.btn.r{background:var(--co);box-shadow:0 4px 0 var(--cod)}.btn.d{background:var(--line);color:#A9A5C7;box-shadow:0 4px 0 #CFCBE8}
+.pill{font-weight:700;font-size:18px;display:flex;gap:6px;align-items:center}
+.mas{width:64px;height:64px;flex:none;border-radius:22px;background:var(--p);box-shadow:0 4px 0 var(--pd);position:relative}
+.mas i{position:absolute;top:20px;width:10px;height:15px;border-radius:6px;background:#fff}.mas i:nth-child(1){left:15px}.mas i:nth-child(2){right:15px}
+.mas b{position:absolute;left:23px;top:42px;width:18px;height:9px;border-radius:0 0 12px 12px;background:var(--sun)}
+.mas.sad b{border-radius:12px 12px 0 0;top:44px;background:#fff}
+.win{background:var(--code);border-radius:20px;color:#EDEBFF;padding:14px 0}
+.ln{display:flex;font:600 21px/1.8 'JetBrains Mono',monospace;white-space:pre}.ln span{width:56px;text-align:right;padding-right:22px;color:#5F5A96}
+.k{color:#FF8FB1}.f{color:#6EE7FF}
+.bl{display:inline-block;min-width:100px;text-align:center;border-radius:8px;background:rgba(255,201,51,.18);border-bottom:3px solid var(--sun);color:var(--sun)}
+.bl.ok{background:rgba(34,201,151,.25);border-color:var(--mint);color:#5CF0C0}.bl.bad{background:rgba(255,93,108,.25);border-color:var(--co);color:#FF9AA4}
+.key{min-width:72px;height:56px;padding:0 22px;border:2px solid var(--line);border-bottom-width:5px;border-radius:16px;background:#fff;font:600 19px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center}
+.key.used{background:var(--bg);border-style:dashed;border-bottom-width:2px;color:transparent}
+.tag{font-weight:600;font-size:14px;background:var(--pt);color:var(--p);padding:5px 12px;border-radius:10px}
+.card{border:2px solid var(--line);border-radius:20px;padding:20px;background:#fff}
+.bar{flex:1;height:16px;border-radius:8px;background:var(--line)}.bar i{display:block;height:100%;border-radius:8px;background:var(--p)}
+.lbl{font-weight:600;font-size:14px;color:var(--mut);margin-bottom:6px}
+.inp{background:var(--bg);border:2px solid var(--line);border-radius:14px;padding:12px 14px;font-size:16px;margin-bottom:16px}
+.node{width:76px;height:76px;border-radius:26px;background:var(--mint);box-shadow:0 6px 0 var(--mintd);color:#fff;font-size:32px;font-weight:700;display:flex;align-items:center;justify-content:center;position:relative}
+.node.cur{background:var(--p);box-shadow:0 6px 0 var(--pd)}.node.lock{background:var(--line);box-shadow:0 6px 0 #CFCBE8;color:#A9A5C7}
+.unit{width:100%;border-radius:20px;padding:18px 24px;color:#fff;background:var(--p);box-shadow:0 4px 0 var(--pd);display:flex;justify-content:space-between;align-items:center}
+.unit.lock{background:var(--line);color:var(--mut);box-shadow:0 4px 0 #CFCBE8}.unit h2{font-size:24px;font-weight:700}.unit p{font-size:15px;opacity:.9}
+.chip{padding:10px 20px;border:2px solid var(--line);border-radius:14px;font-weight:600;color:var(--mut)}.chip.on{background:var(--pt);border-color:var(--p);color:var(--p)}
+.foot{margin-top:auto;height:132px;border-top:2px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 200px}
+.foot.ok{background:#D9FBEC;border-color:#D9FBEC;color:var(--mintd)}.foot.bad{background:#FFE3E6;border-color:#FFE3E6;color:var(--cod)}
+.foot h3{font-size:26px;font-weight:700}.foot p{font-size:16px;font-weight:500}
+.qi{padding:12px 14px;border:2px solid var(--line);border-radius:16px;font-weight:600}.qi small{display:block;font-size:13px;color:var(--mut);font-weight:500;margin-top:2px}.qi.on{border-color:var(--p);background:var(--pt)}
+</style><body>
+<div class=frame>
+<div class=side><div class=logo><span class=lg>{}</span>Codeigo</div>
+<div class="nav"><span class=ic></span>Learn</div>
+<div class="nav on"><span class=ic></span>Create</div>
+<div class="nav"><span class=ic></span>Practice</div>
+<div class="nav"><span class=ic></span>Profile</div>
+<div class="nav"><span class=ic></span>Settings</div>
+</div>
+<div style="flex:1;padding:36px 48px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px"><h1 style="font-size:36px;font-weight:700">My quizzes</h1><span class=btn>New quiz</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+<div class=card><span class=tag style="background:#DDF3FE;color:var(--skyd)">Python</span><div style="font-size:21px;font-weight:600;margin:14px 0 4px">List slicing warm-up</div><div style="color:var(--mut)">8 questions, unlisted</div></div>
+<div class=card><span class=tag style="background:#FFF3CC;color:var(--sund)">JavaScript</span><div style="font-size:21px;font-weight:600;margin:14px 0 4px">Array methods</div><div style="color:var(--mut)">5 questions, draft</div></div>
+<div class=card><span class=tag style="background:#FFE3E6;color:var(--cod)">C++</span><div style="font-size:21px;font-weight:600;margin:14px 0 4px">Pointer basics</div><div style="color:var(--mut)">12 questions, private</div></div>
+<div class=card style="border-style:dashed;display:flex;align-items:center;justify-content:center;color:var(--p);font-weight:700;font-size:18px;min-height:132px">Create a quiz</div></div></div></div>
+<div class=frame>
+<div class=side><div class=logo><span class=lg>{}</span>Codeigo</div>
+<div class="nav"><span class=ic></span>Learn</div>
+<div class="nav on"><span class=ic></span>Create</div>
+<div class="nav"><span class=ic></span>Practice</div>
+<div class="nav"><span class=ic></span>Profile</div>
+<div class="nav"><span class=ic></span>Settings</div>
+</div>
+<div style="width:250px;flex:none;border-right:2px solid var(--line);padding:24px 16px;display:flex;flex-direction:column;gap:10px"><div style="font-weight:700;font-size:19px;margin-bottom:6px">List slicing warm-up</div>
+<div class="qi on">1. Fill in the blank<small>Finish the loop so it runs…</small></div><div class=qi>2. Multiple choice<small>What does nums[1:3] return?</small></div><div class=qi>3. Predict the output<small>print(nums[-1])</small></div><span class="btn o" style="height:44px;margin-top:6px;font-size:15px">Add question</span></div>
+<div style="width:420px;flex:none;padding:28px"><div class=lbl>Question type</div><div class=inp>Fill in the blank</div><div class=lbl>Prompt</div><div class=inp>Finish the loop so it runs 5 times</div><div class=lbl>Code (wrap the blank in [[ ]])</div><div class="inp mono" style="background:var(--code);border-color:var(--code);color:#EDEBFF;white-space:pre;font-size:15px;line-height:1.6">for i in [[range]](5):
+    print(i)</div><div class=lbl>Accepted answers</div><div class=inp>range</div><div class=lbl>Explanation</div><div class=inp>range(5) counts from 0 to 4.</div>
+<div style="display:flex;gap:12px"><span class="btn o">Save draft</span><span class=btn>Publish</span></div></div>
+<div style="flex:1;background:var(--bg);border-left:2px solid var(--line);padding:28px;display:flex;flex-direction:column;gap:18px"><div class=lbl>Live preview</div><h2 style="font-size:24px;font-weight:700">Finish the loop so it runs 5 times</h2>
+<div class=win><div class=ln style="font-size:16px"><span style="width:40px;padding-right:14px">1</span><i style="font-style:normal"><b class=k style="font-weight:600">for</b> i <b class=k style="font-weight:600">in</b> <span class=bl style="min-width:70px">&nbsp;</span>(5):</i></div><div class=ln style="font-size:16px"><span style="width:40px;padding-right:14px">2</span>    <b class=f style="font-weight:600">print</b>(i)</div></div>
+<div style="display:flex;gap:10px"><div class=key style="height:46px;font-size:15px">range</div><div class=key style="height:46px;font-size:15px">len</div><div class=key style="height:46px;font-size:15px">while</div></div></div></div></body>
