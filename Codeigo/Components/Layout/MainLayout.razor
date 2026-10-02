@@ -1,18 +1,107 @@
 @inherits LayoutComponentBase
+@inject ProgressService Progress
+@inject NavigationManager Nav
+@implements IDisposable
 
-<div class="flex h-screen overflow-hidden bg-white text-ink">
-    <aside class="w-60 flex-none p-6 border-r-2 border-line hidden md:flex flex-col gap-1.5 bg-white h-screen overflow-y-auto">
+<div class="flex h-screen overflow-hidden bg-white text-ink font-sans">
+    <!-- Desktop Sidebar -->
+    <aside class="w-64 flex-none p-6 border-r-2 border-line hidden md:flex flex-col gap-1.5 bg-white h-screen overflow-y-auto">
         <NavMenu />
     </aside>
+
+    <!-- Mobile Slide-over Drawer Backdrop -->
+    @if (_mobileMenuOpen)
+    {
+        <div class="fixed inset-0 bg-ink/40 backdrop-blur-sm z-40 md:hidden anim-fade-up" 
+             @onclick="CloseMobileMenu">
+        </div>
+    }
+
+    <!-- Mobile Slide-over Drawer -->
+    <div class="fixed inset-y-0 left-0 w-72 bg-white z-50 p-6 flex flex-col gap-1.5 border-r-2 border-line shadow-2xl transition-transform duration-300 md:hidden @(_mobileMenuOpen ? "translate-x-0" : "-translate-x-full")">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-mut">Navigation</span>
+            <button class="text-mut hover:text-ink text-2xl font-bold p-1 leading-none" @onclick="CloseMobileMenu">×</button>
+        </div>
+        <NavMenu OnNavigate="CloseMobileMenu" />
+    </div>
+
+    <!-- Main Content Area -->
     <main class="flex-1 flex flex-col overflow-hidden bg-surface">
+        <!-- Top bar for Mobile Viewport and Global Quick Stats -->
+        <header class="h-14 md:h-16 px-4 md:px-8 border-b-2 border-line bg-white flex items-center justify-between flex-none z-10">
+            <div class="flex items-center gap-3">
+                <button class="md:hidden p-2 rounded-xl border-2 border-line text-ink hover:bg-surface active:scale-95 transition-all" 
+                        @onclick="ToggleMobileMenu" 
+                        aria-label="Toggle navigation menu">
+                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </button>
+                <div class="md:hidden flex items-center gap-2 cursor-pointer font-bold text-brand" @onclick='() => Nav.NavigateTo("/")'>
+                    <span class="logo-icon w-7 h-7 text-xs">{}</span>
+                    <span class="text-lg">Codeigo</span>
+                </div>
+            </div>
+
+            <!-- Global Stats Bar in Header -->
+            <div class="flex items-center gap-3 sm:gap-6 text-sm font-bold">
+                <div class="flex items-center gap-1.5 text-sun cursor-pointer hover:opacity-80 transition-opacity" title="Daily Streak" @onclick='() => Nav.NavigateTo("/quests")'>
+                    <span class="text-base sm:text-lg">🔥</span>
+                    <span>@Progress.Streak</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-sky cursor-pointer hover:opacity-80 transition-opacity" title="XP Points" @onclick='() => Nav.NavigateTo("/leaderboard")'>
+                    <span class="text-base sm:text-lg">◆</span>
+                    <span>@Progress.Xp</span>
+                </div>
+                @if (Progress.HeartsEnabled)
+                {
+                    <div class="flex items-center gap-1.5 text-coral cursor-pointer hover:opacity-80 transition-opacity" title="Hearts Remaining" @onclick='() => Nav.NavigateTo("/settings")'>
+                        <span class="text-base sm:text-lg">♥</span>
+                        <span>@Progress.Hearts</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="hidden sm:flex items-center gap-1.5 text-mint" title="Practice Accuracy">
+                        <span>🎯 94%</span>
+                    </div>
+                }
+            </div>
+        </header>
+
         <div class="flex-1 overflow-y-auto">
             @Body
         </div>
     </main>
 </div>
 
-<div id="blazor-error-ui" data-nosnippet>
+<div id="blazor-error-ui" data-nosnippet class="hidden fixed bottom-0 left-0 right-0 bg-coral text-white p-4 font-semibold z-50 justify-between items-center">
     An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <a href="." class="reload underline">Reload</a>
+    <span class="dismiss cursor-pointer text-xl">🗙</span>
 </div>
+
+@code {
+    private bool _mobileMenuOpen = false;
+
+    protected override void OnInitialized()
+    {
+        Progress.OnChange += StateHasChanged;
+    }
+
+    private void ToggleMobileMenu()
+    {
+        _mobileMenuOpen = !_mobileMenuOpen;
+    }
+
+    private void CloseMobileMenu()
+    {
+        _mobileMenuOpen = false;
+    }
+
+    public void Dispose()
+    {
+        Progress.OnChange -= StateHasChanged;
+    }
+}
