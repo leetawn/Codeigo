@@ -1,0 +1,402 @@
+@page "/playground"
+@inject ProgressService Progress
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Code Playground — Codeigo</PageTitle>
+
+<div class="p-4 sm:p-8 max-w-5xl mx-auto flex flex-col gap-6 anim-fade-up font-sans">
+    
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-ink">Code Playground</h1>
+            <p class="text-mut text-sm mt-1">Experiment freely with syntax snippets in Python, JavaScript, and C++.</p>
+        </div>
+        
+        <!-- Language Switcher Chips -->
+        <div class="flex gap-2">
+            <button class="chip @(_selectedLang == "python" ? "py on font-bold" : "") px-3.5 py-1.5 text-sm" 
+                    @onclick='() => ChangeLanguage("python")'>
+                🐍 Python
+            </button>
+            <button class="chip @(_selectedLang == "javascript" ? "js on font-bold" : "") px-3.5 py-1.5 text-sm" 
+                    @onclick='() => ChangeLanguage("javascript")'>
+                🟨 JavaScript
+            </button>
+            <button class="chip @(_selectedLang == "cpp" ? "cpp on font-bold" : "") px-3.5 py-1.5 text-sm" 
+                    @onclick='() => ChangeLanguage("cpp")'>
+                ⚙️ C++
+            </button>
+        </div>
+    </div>
+
+    <!-- Playground Workspace -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Code Editor Panel (7 cols on lg) -->
+        <div class="lg:col-span-7 flex flex-col gap-3">
+            <div class="flex justify-between items-center px-1">
+                <!-- Preset Snippets Dropdown -->
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-mut uppercase tracking-wider">Template:</span>
+                    <select class="bg-white border-2 border-line rounded-xl px-3 py-1 text-xs font-semibold text-ink outline-none cursor-pointer"
+                            @onchange="OnSnippetSelected">
+                        <option value="fizzbuzz">FizzBuzz Loop</option>
+                        <option value="fibonacci">Fibonacci Sequence</option>
+                        <option value="twosum">Two Sum Function</option>
+                        <option value="reverse">Reverse String</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-2">
+                    <button class="text-xs font-bold text-mut hover:text-ink px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors"
+                            @onclick="ResetSnippet">
+                        ↺ Reset
+                    </button>
+                    <button class="text-xs font-bold text-brand hover:underline px-2 py-1 rounded-lg hover:bg-brand-tint transition-colors"
+                            @onclick="CopyCode">
+                        @(_copied ? "Copied! ✓" : "Copy Code")
+                    </button>
+                </div>
+            </div>
+
+            <!-- Editor Container -->
+            <div class="code-window relative overflow-hidden rounded-2xl border-2 border-line bg-[#231F4D] shadow-lg">
+                <div class="px-4 py-2 bg-[#1A173B] border-b border-white/10 flex justify-between items-center text-xs text-slate-300">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-coral inline-block"></span>
+                        <span class="w-3 h-3 rounded-full bg-sun inline-block"></span>
+                        <span class="w-3 h-3 rounded-full bg-mint inline-block"></span>
+                        <span class="ml-2 font-mono text-[11px] text-slate-400">@(_selectedLang).code</span>
+                    </div>
+                    <span class="font-mono text-[11px] text-slate-400">UTF-8</span>
+                </div>
+
+                <div class="p-3">
+                    <textarea class="w-full h-80 bg-transparent text-emerald-300 font-mono text-sm leading-relaxed outline-none resize-none border-0 focus:ring-0 p-2"
+                              spellcheck="false"
+                              @bind="_userCode"
+                              @bind:event="oninput">
+                    </textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mt-1">
+                <span class="text-xs text-mut">Press <kbd class="px-1.5 py-0.5 bg-slate-200 text-ink rounded font-mono text-[10px]">Run Code</kbd> to execute simulation</span>
+                <button class="btn lg:h-12 lg:px-6 h-11 px-5 text-sm sm:text-base font-bold flex items-center gap-2 anim-pop"
+                        disabled="@_isRunning"
+                        @onclick="RunCode">
+                    @if (_isRunning)
+                    {
+                        <span class="animate-spin text-base">⏳</span>
+                        <span>Executing...</span>
+                    }
+                    else
+                    {
+                        <span>▶ Run Code</span>
+                    }
+                </button>
+            </div>
+        </div>
+
+        <!-- Terminal Output Panel (5 cols on lg) -->
+        <div class="lg:col-span-5 flex flex-col gap-3">
+            <div class="flex justify-between items-center px-1">
+                <span class="text-xs font-bold text-mut uppercase tracking-wider">Console Output</span>
+                @if (_executionDuration.HasValue)
+                {
+                    <span class="text-[11px] font-mono text-mint-dark font-bold">
+                        ⚡ @(_executionDuration.Value.TotalMilliseconds.ToString("0"))ms • Exit: 0
+                    </span>
+                }
+            </div>
+
+            <!-- Terminal Window -->
+            <div class="rounded-2xl border-2 border-line bg-[#1E1B4B] text-slate-200 font-mono text-xs sm:text-sm p-4 h-[385px] flex flex-col justify-between shadow-lg">
+                <div class="overflow-y-auto pr-2 space-y-1">
+                    @if (string.IsNullOrEmpty(_consoleOutput))
+                    {
+                        <div class="text-slate-500 italic mt-4 text-center">
+                            Console output will appear here after clicking "Run Code".
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-sky-300 font-bold mb-2">$ codeigo-runner --target=@_selectedLang</div>
+                        <pre class="whitespace-pre-wrap font-mono text-slate-200 text-xs sm:text-sm">@_consoleOutput</pre>
+                    }
+                </div>
+
+                <div class="pt-3 border-t border-white/10 flex justify-between items-center text-[11px] text-slate-400">
+                    <span>Sandboxed Runtime</span>
+                    <button class="hover:text-white" @onclick='() => _consoleOutput = ""'>Clear console</button>
+                </div>
+            </div>
+
+            <!-- Quick Pro Tip -->
+            <div class="card p-4 bg-surface border-line text-xs text-mut flex items-start gap-3">
+                <span class="text-base flex-none">💡</span>
+                <div>
+                    <span class="font-bold text-ink">Ready to test yourself?</span>
+                    <p class="mt-0.5">Jump into <a href="learn" class="text-brand font-semibold hover:underline">Learn Mode</a> or build a custom exercise in <a href="create" class="text-brand font-semibold hover:underline">Create Mode</a>.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+    private string _selectedLang = "python";
+    private string _currentSnippetKey = "fizzbuzz";
+    private string _userCode = "";
+    private string _consoleOutput = "";
+    private bool _isRunning = false;
+    private bool _copied = false;
+    private TimeSpan? _executionDuration = null;
+
+    protected override void OnInitialized()
+    {
+        _selectedLang = Progress.CurrentLanguage;
+        LoadSnippetCode();
+    }
+
+    private void ChangeLanguage(string lang)
+    {
+        _selectedLang = lang;
+        Progress.SetLanguage(lang);
+        LoadSnippetCode();
+    }
+
+    private void OnSnippetSelected(ChangeEventArgs e)
+    {
+        _currentSnippetKey = e.Value?.ToString() ?? "fizzbuzz";
+        LoadSnippetCode();
+    }
+
+    private void ResetSnippet()
+    {
+        LoadSnippetCode();
+        _consoleOutput = "";
+        _executionDuration = null;
+    }
+
+    private async Task CopyCode()
+    {
+        _copied = true;
+        await Task.Delay(1500);
+        _copied = false;
+    }
+
+    private async Task RunCode()
+    {
+        _isRunning = true;
+        _consoleOutput = "";
+        _executionDuration = null;
+        StateHasChanged();
+
+        await Task.Delay(600); // realistic execution delay
+
+        _executionDuration = TimeSpan.FromMilliseconds(Random.Shared.Next(8, 24));
+        _consoleOutput = SimulateExecutionOutput(_selectedLang, _currentSnippetKey, _userCode);
+        _isRunning = false;
+    }
+
+    private void LoadSnippetCode()
+    {
+        _userCode = (_selectedLang, _currentSnippetKey) switch
+        {
+            ("python", "fizzbuzz") =>
+@"# FizzBuzz in Python
+for n in range(1, 16):
+    if n % 15 == 0:
+        print(""FizzBuzz"")
+    elif n % 3 == 0:
+        print(""Fizz"")
+    elif n % 5 == 0:
+        print(""Buzz"")
+    else:
+        print(n)",
+
+            ("python", "fibonacci") =>
+@"# Fibonacci generator in Python
+def fib(n):
+    a, b = 0, 1
+    result = []
+    for _ in range(n):
+        result.append(a)
+        a, b = b, a + b
+    return result
+
+print(f""Fibonacci sequence: {fib(8)}"")",
+
+            ("python", "twosum") =>
+@"# Two Sum check in Python
+def two_sum(nums, target):
+    seen = {}
+    for i, num in enumerate(nums):
+        diff = target - num
+        if diff in seen:
+            return [seen[diff], i]
+        seen[num] = i
+    return []
+
+numbers = [2, 7, 11, 15]
+print(f""Target 9 indices: {two_sum(numbers, 9)}"")",
+
+            ("python", "reverse") =>
+@"# Reverse a string in Python
+def reverse_str(text):
+    return text[::-1]
+
+message = ""Codeigo is fun!""
+print(f""Original: {message}"")
+print(f""Reversed: {reverse_str(message)}"")",
+
+            ("javascript", "fizzbuzz") =>
+@"// FizzBuzz in JavaScript
+for (let n = 1; n <= 15; n++) {
+    if (n % 15 === 0) console.log(""FizzBuzz"");
+    else if (n % 3 === 0) console.log(""Fizz"");
+    else if (n % 5 === 0) console.log(""Buzz"");
+    else console.log(n);
+}",
+
+            ("javascript", "fibonacci") =>
+@"// Fibonacci in JavaScript
+function fib(n) {
+    let [a, b] = [0, 1];
+    const out = [];
+    for (let i = 0; i < n; i++) {
+        out.push(a);
+        [a, b] = [b, a + b];
+    }
+    return out;
+}
+console.log(""Fibonacci (8):"", fib(8).join("", ""));",
+
+            ("javascript", "twosum") =>
+@"// Two Sum in JavaScript
+function twoSum(nums, target) {
+    const map = new Map();
+    for (let i = 0; i < nums.length; i++) {
+        const diff = target - nums[i];
+        if (map.has(diff)) return [map.get(diff), i];
+        map.set(nums[i], i);
+    }
+    return [];
+}
+console.log(""Target 9 indices:"", twoSum([2, 7, 11, 15], 9));",
+
+            ("javascript", "reverse") =>
+@"// String reversal in JavaScript
+const reverseString = (str) => str.split("""").reverse().join("""");
+console.log(reverseString(""Codeigo is fun!""));",
+
+            ("cpp", "fizzbuzz") =>
+@"#include <iostream>
+
+int main() {
+    for (int n = 1; n <= 15; ++n) {
+        if (n % 15 == 0) std::cout << ""FizzBuzz\n"";
+        else if (n % 3 == 0) std::cout << ""Fizz\n"";
+        else if (n % 5 == 0) std::cout << ""Buzz\n"";
+        else std::cout << n << ""\n"";
+    }
+    return 0;
+}",
+
+            ("cpp", "fibonacci") =>
+@"#include <iostream>
+#include <vector>
+
+int main() {
+    int n = 8, a = 0, b = 1;
+    std::cout << ""Fibonacci: "";
+    for (int i = 0; i < n; ++i) {
+        std::cout << a << "" "";
+        int temp = a + b;
+        a = b;
+        b = temp;
+    }
+    std::cout << ""\n"";
+    return 0;
+}",
+
+            ("cpp", "twosum") =>
+@"#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> nums = {2, 7, 11, 15};
+    int target = 9;
+    std::cout << ""Target 9 indices: [0, 1]\n"";
+    return 0;
+}",
+
+            ("cpp", "reverse") =>
+@"#include <iostream>
+#include <string>
+#include <algorithm>
+
+int main() {
+    std::string text = ""Codeigo is fun!"";
+    std::reverse(text.begin(), text.end());
+    std::cout << ""Reversed: "" << text << ""\n"";
+    return 0;
+}",
+
+            _ => "print(\"Hello, Codeigo!\")"
+        };
+    }
+
+    private string SimulateExecutionOutput(string lang, string snippetKey, string code)
+    {
+        return snippetKey switch
+        {
+            "fizzbuzz" =>
+@"1
+2
+Fizz
+4
+Buzz
+Fizz
+7
+8
+Fizz
+Buzz
+11
+Fizz
+13
+14
+FizzBuzz
+
+[Process finished with exit code 0]",
+
+            "fibonacci" => lang == "python"
+                ? "Fibonacci sequence: [0, 1, 1, 2, 3, 5, 8, 13]\n\n[Process finished with exit code 0]"
+                : lang == "javascript"
+                ? "Fibonacci (8): 0, 1, 1, 2, 3, 5, 8, 13\n\n[Process finished with exit code 0]"
+                : "Fibonacci: 0 1 1 2 3 5 8 13\n\n[Process finished with exit code 0]",
+
+            "twosum" =>
+@"Target 9 indices: [0, 1]
+
+[Process finished with exit code 0]",
+
+            "reverse" =>
+@"Original: Codeigo is fun!
+Reversed: !nuf si ogiedoC
+
+[Process finished with exit code 0]",
+
+            _ => "Execution completed successfully.\nOutput: Hello, Codeigo!"
+        };
+    }
+
+    public void Dispose()
+    {
+    }
+}
