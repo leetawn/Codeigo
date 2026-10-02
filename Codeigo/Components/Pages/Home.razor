@@ -1,5 +1,6 @@
 @page "/"
 @layout EmptyLayout
+@rendermode InteractiveServer
 @inject NavigationManager Nav
 @inject ProgressService Progress
 
@@ -8,15 +9,15 @@
 <div class="bg-white min-h-screen flex flex-col font-sans">
     <!-- Top Navigation Bar -->
     <header class="w-full max-w-7xl mx-auto px-6 sm:px-12 md:px-24 h-20 flex items-center justify-between">
-        <div class="logo p-0" @onclick='() => Nav.NavigateTo("/")'>
+        <a href="/" class="logo p-0">
             <span class="logo-icon">{}</span>
             <span>Codeigo</span>
-        </div>
+        </a>
         <div class="flex gap-5 items-center font-semibold">
             @if (Progress.IsLoggedIn)
             {
                 <span class="text-ink">Hi, @Progress.UserName</span>
-                <button class="btn sm" @onclick='() => Nav.NavigateTo("/learn")'>Open App</button>
+                <a href="learn" class="btn sm">Open App</a>
             }
             else
             {
@@ -35,7 +36,7 @@
                 Practice real syntax in Python, JavaScript, and C++. Short lessons, instant feedback, and quizzes you can make yourself.
             </p>
             <div class="flex gap-3.5 mt-2 flex-wrap">
-                <button class="btn lg" @onclick='() => Nav.NavigateTo("/learn")'>Get started</button>
+                <a href="learn" class="btn lg">Get started</a>
                 <button class="btn o lg" @onclick='() => { Progress.Login("Ethan"); Nav.NavigateTo("/learn"); }'>I already have an account</button>
             </div>
         </div>
@@ -168,7 +169,7 @@
                 Pick a question type, paste your code, and mark the blank with <code>[[ ]]</code>. Codeigo extracts tokens and generates live interactive previews instantly.
             </p>
             <div class="mt-2">
-                <button class="btn" @onclick='() => Nav.NavigateTo("/create")'>Try Create mode</button>
+                <a href="create" class="btn">Try Create mode</a>
             </div>
         </div>
 
@@ -195,9 +196,9 @@
                     <div class="text-base opacity-90 mt-1">Free to start. No setup, no installs.</div>
                 </div>
             </div>
-            <button class="btn lg bg-white text-brand shadow-[0_4px_0_theme(colors.line)] hover:bg-slate-50" @onclick='() => Nav.NavigateTo("/learn")'>
+            <a href="learn" class="btn lg bg-white text-brand shadow-[0_4px_0_theme(colors.line)] hover:bg-slate-50">
                 Get started
-            </button>
+            </a>
         </div>
     </section>
 
