@@ -1,0 +1,115 @@
+@page "/quests"
+@inject ProgressService Progress
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Daily Quests — Codeigo</PageTitle>
+
+<div class="p-4 sm:p-8 max-w-4xl mx-auto flex flex-col gap-6 anim-fade-up font-sans">
+    
+    <!-- Quests Header -->
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-ink">Daily Quests</h1>
+            <p class="text-mut text-sm mt-1">Complete daily coding objectives to earn bonus XP and maintain your streak.</p>
+        </div>
+        <div class="bg-surface border-2 border-line rounded-2xl px-4 py-2 text-center sm:text-right self-start sm:self-auto">
+            <span class="text-xs text-mut uppercase tracking-wider block">Quests Reset In</span>
+            <span class="text-sm font-bold text-brand">14h 22m</span>
+        </div>
+    </div>
+
+    <!-- Monthly Badge Milestone Card -->
+    <div class="card p-6 sm:p-7 bg-gradient-to-r from-sun-tint via-white to-surface border-sun flex flex-col sm:flex-row items-center gap-6">
+        <div class="w-20 h-20 rounded-2xl bg-sun flex items-center justify-center text-4xl shadow-[0_4px_0_theme(colors.sun.dark)]">
+            🌟
+        </div>
+        <div class="flex-1 w-full text-center sm:text-left">
+            <div class="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-1">
+                <div>
+                    <span class="text-xs font-bold text-sun-dark uppercase tracking-wider">Monthly Challenge</span>
+                    <h3 class="text-xl font-bold text-ink">October Syntax Badge</h3>
+                </div>
+                <span class="pill text-sun font-bold text-sm">3 / 20 Quests</span>
+            </div>
+            <p class="text-xs sm:text-sm text-mut mt-1 mb-3">Complete 20 daily quests this month to unlock the limited-edition Cyber Owl avatar mascot.</p>
+            <div class="bar">
+                <i class="bar-fill sun" style="width: 15%;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Quests List -->
+    <div class="flex flex-col gap-4">
+        <h2 class="text-xl font-bold text-ink">Today's Challenges</h2>
+
+        @foreach (var quest in Progress.GetDailyQuests())
+        {
+            var currentProg = Progress.GetQuestProgress(quest.Id);
+            var pct = Math.Min(100, (int)Math.Round(currentProg * 100.0 / Math.Max(1, quest.Target)));
+            var isReadyToClaim = currentProg >= quest.Target && !quest.IsClaimed;
+
+            <div class="card p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-center gap-5 transition-all @(quest.IsClaimed ? "bg-slate-50 border-line opacity-80" : isReadyToClaim ? "border-mint bg-mint-tint/30 shadow-md" : "")">
+                <div class="flex items-center gap-4 sm:gap-5 w-full sm:w-auto">
+                    <div class="w-14 h-14 rounded-2xl bg-surface border-2 border-line flex items-center justify-center text-2xl flex-none">
+                        @quest.Icon
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-base sm:text-lg text-ink">@quest.Title</h3>
+                            <span class="tag bg-sky-tint text-sky-dark text-xs">+@quest.XpReward XP</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-mut mt-0.5 mb-2.5">@quest.Description</p>
+                        
+                        <div class="flex items-center gap-3">
+                            <div class="bar flex-1 max-w-[200px] h-3">
+                                <i class="bar-fill @(isReadyToClaim || quest.IsClaimed ? "mint" : "")" style="width: @pct%;"></i>
+                            </div>
+                            <span class="text-xs font-bold text-mut">@currentProg / @quest.Target</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full sm:w-auto flex sm:flex-col justify-end">
+                    @if (quest.IsClaimed)
+                    {
+                        <div class="text-mint-dark font-bold text-sm flex items-center gap-1.5 py-2 px-4 rounded-xl bg-mint-tint">
+                            <span>✓</span>
+                            <span>Claimed</span>
+                        </div>
+                    }
+                    else if (isReadyToClaim)
+                    {
+                        <button class="btn g sm w-full sm:w-auto anim-pop" @onclick="() => Claim(quest.Id)">
+                            Claim +@quest.XpReward XP
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn o sm w-full sm:w-auto text-xs" @onclick='() => Nav.NavigateTo("/practice")'>
+                            Go &rarr;
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Progress.OnChange += StateHasChanged;
+    }
+
+    private void Claim(string questId)
+    {
+        Progress.ClaimQuest(questId);
+    }
+
+    public void Dispose()
+    {
+        Progress.OnChange -= StateHasChanged;
+    }
+}

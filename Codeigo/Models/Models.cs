@@ -120,3 +120,31 @@ public class LessonResult
     public int AccuracyPercent =>
         TotalExercises == 0 ? 0 : (int)Math.Round(CorrectAnswers * 100.0 / TotalExercises);
 }
+
+// ── Quests & Challenges ──────────────────────────────────────────────────────
+
+public class DailyQuest
+{
+    public string Id { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Description { get; set; } = "";
+    public string Icon { get; set; } = "🎯";
+    public int Target { get; set; }
+    public int XpReward { get; set; }
+    public bool IsClaimed { get; set; }
+}
+
+// ── Leaderboard Entry ────────────────────────────────────────────────────────
+
+public class LeaderboardEntry
+{
+    public int Rank { get; set; }
+    public string UserName { get; set; } = "";
+    public string AvatarEmoji { get; set; } = "🐱";
+    public string MascotColor { get; set; } = "var(--p)";
+    public int Xp { get; set; }
+    public int Streak { get; set; }
+    public string PrimaryLanguage { get; set; } = "Python";
+    public bool IsCurrentUser { get; set; }
+}
+

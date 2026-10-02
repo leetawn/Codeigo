@@ -1,0 +1,159 @@
+@page "/leaderboard"
+@inject ProgressService Progress
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Leaderboard — Codeigo</PageTitle>
+
+<div class="p-4 sm:p-8 max-w-4xl mx-auto flex flex-col gap-6 anim-fade-up font-sans">
+    
+    <!-- League Header Banner -->
+    <div class="card bg-gradient-to-r from-brand/90 to-brand text-white p-6 sm:p-8 rounded-3xl shadow-[0_6px_0_theme(colors.brand.dark)] flex flex-col sm:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-5 text-center sm:text-left">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/20 flex items-center justify-center text-4xl sm:text-5xl shadow-inner">
+                🏆
+            </div>
+            <div>
+                <div class="inline-block bg-sun text-ink text-xs font-bold px-3 py-1 rounded-full mb-1 uppercase tracking-wider">
+                    Gold League • Division 4
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-bold">Weekly Leaderboard</h1>
+                <p class="text-white/80 text-sm mt-1">Top 5 learners earn promotion to the Sapphire League!</p>
+            </div>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center sm:text-right">
+            <div class="text-xs uppercase tracking-wider text-white/70">Tournament Ends In</div>
+            <div class="text-xl sm:text-2xl font-bold text-sun mt-0.5">2d 14h 32m</div>
+        </div>
+    </div>
+
+    <!-- Filter Pills / Tabs -->
+    <div class="flex gap-2.5 overflow-x-auto pb-1">
+        <button class="chip on px-4 py-2 text-sm font-bold">
+            🏆 Gold League
+        </button>
+        <button class="chip px-4 py-2 text-sm font-semibold hover:bg-white" @onclick='() => Nav.NavigateTo("/quests")'>
+            🎯 Daily Quests
+        </button>
+        <button class="chip px-4 py-2 text-sm font-semibold hover:bg-white" @onclick='() => Nav.NavigateTo("/profile")'>
+            👤 My Stats
+        </button>
+    </div>
+
+    <!-- Leaderboard Table Card -->
+    <div class="card p-0 overflow-hidden shadow-sm">
+        <div class="p-4 sm:p-5 bg-surface border-b-2 border-line flex justify-between items-center text-xs font-bold text-mut uppercase tracking-wider">
+            <div class="flex items-center gap-4">
+                <span class="w-8 text-center">Rank</span>
+                <span>Learner</span>
+            </div>
+            <div class="flex items-center gap-8 pr-2">
+                <span class="hidden sm:inline">Streak</span>
+                <span class="w-20 text-right">XP Earned</span>
+            </div>
+        </div>
+
+        <div class="divide-y divide-line">
+            @foreach (var entry in Progress.GetLeaderboard())
+            {
+                var isTop3 = entry.Rank <= 3;
+                var isPromotionZone = entry.Rank <= 5;
+                var isDemotionZone = entry.Rank >= 9;
+
+                <div class="p-3.5 sm:p-4.5 flex items-center justify-between transition-colors @(entry.IsCurrentUser ? "bg-brand-tint/60 border-l-4 border-l-brand" : "hover:bg-slate-50")">
+                    <div class="flex items-center gap-3 sm:gap-4">
+                        <!-- Rank Number / Medal -->
+                        <div class="w-8 text-center font-bold text-base sm:text-lg flex items-center justify-center">
+                            @if (entry.Rank == 1)
+                            {
+                                <span class="text-2xl" title="1st Place">🥇</span>
+                            }
+                            else if (entry.Rank == 2)
+                            {
+                                <span class="text-2xl" title="2nd Place">🥈</span>
+                            }
+                            else if (entry.Rank == 3)
+                            {
+                                <span class="text-2xl" title="3rd Place">🥉</span>
+                            }
+                            else
+                            {
+                                <span class="@(isPromotionZone ? "text-mint font-bold" : isDemotionZone ? "text-coral" : "text-mut")">
+                                    @entry.Rank
+                                </span>
+                            }
+                        </div>
+
+                        <!-- User Mascot Avatar -->
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm" style="background: @entry.MascotColor; color: white;">
+                            @entry.AvatarEmoji
+                        </div>
+
+                        <!-- User Info -->
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm sm:text-base text-ink @(entry.IsCurrentUser ? "text-brand" : "")">
+                                    @entry.UserName
+                                </span>
+                                @if (entry.IsCurrentUser)
+                                {
+                                    <span class="bg-brand text-white text-[10px] font-bold px-2 py-0.5 rounded-full">YOU</span>
+                                }
+                            </div>
+                            <div class="text-xs text-mut flex items-center gap-2 mt-0.5">
+                                <span>@entry.PrimaryLanguage</span>
+                                @if (isPromotionZone)
+                                {
+                                    <span class="hidden sm:inline text-mint-dark font-medium">• Promotion Zone</span>
+                                }
+                                else if (isDemotionZone)
+                                {
+                                    <span class="hidden sm:inline text-coral-dark font-medium">• Danger Zone</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Stats -->
+                    <div class="flex items-center gap-4 sm:gap-8 pr-2">
+                        <div class="hidden sm:flex items-center gap-1 text-sun font-bold text-sm">
+                            <span>🔥</span>
+                            <span>@entry.Streak</span>
+                        </div>
+                        <div class="w-20 text-right font-bold text-sm sm:text-base text-sky-dark">
+                            ◆ @entry.Xp XP
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Motivational Footer Callout -->
+    <div class="card p-6 bg-gradient-to-r from-mint-tint to-surface border-mint flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-4 text-center sm:text-left">
+            <div class="text-3xl">🚀</div>
+            <div>
+                <h4 class="font-bold text-base text-ink">Want to climb the ranks faster?</h4>
+                <p class="text-xs sm:text-sm text-mut">Complete lessons or solve quick practice drills to boost your position!</p>
+            </div>
+        </div>
+        <button class="btn g sm w-full sm:w-auto" @onclick='() => Nav.NavigateTo("/practice")'>
+            Practice Now &rarr;
+        </button>
+    </div>
+
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Progress.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Progress.OnChange -= StateHasChanged;
+    }
+}
