@@ -9,6 +9,51 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            DEFAULT: '#5B4BFF',
+                            dark: '#3E2FD6',
+                            tint: '#ECEAFF',
+                        },
+                        mint: {
+                            DEFAULT: '#22C997',
+                            dark: '#149A73',
+                            tint: '#D9FBEC',
+                        },
+                        sun: {
+                            DEFAULT: '#FFC933',
+                            dark: '#E0A800',
+                            tint: '#FFF3CC',
+                        },
+                        coral: {
+                            DEFAULT: '#FF5D6C',
+                            dark: '#D93B4B',
+                            tint: '#FFE3E6',
+                        },
+                        sky: {
+                            DEFAULT: '#3BB8F5',
+                            dark: '#1F94CC',
+                            tint: '#DDF3FE',
+                        },
+                        ink: '#26224A',
+                        mut: '#7A7699',
+                        surface: '#F7F6FF',
+                        line: '#E3E0F5',
+                        darkcode: '#231F4D',
+                    },
+                    fontFamily: {
+                        sans: ['Fredoka', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Consolas', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Codeigo.styles.css"]" />
     <ImportMap />

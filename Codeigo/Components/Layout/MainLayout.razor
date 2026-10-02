@@ -1,11 +1,11 @@
 @inherits LayoutComponentBase
 
-<div class="app-shell">
-    <aside class="sidebar">
+<div class="flex h-screen overflow-hidden bg-white text-ink">
+    <aside class="w-60 flex-none p-6 border-r-2 border-line hidden md:flex flex-col gap-1.5 bg-white h-screen overflow-y-auto">
         <NavMenu />
     </aside>
-    <main class="main-content">
-        <div class="main-scroll">
+    <main class="flex-1 flex flex-col overflow-hidden bg-surface">
+        <div class="flex-1 overflow-y-auto">
             @Body
         </div>
     </main>

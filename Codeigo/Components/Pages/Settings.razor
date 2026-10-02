@@ -5,21 +5,21 @@
 
 <PageTitle>Settings — Codeigo</PageTitle>
 
-<div style="padding: 36px 48px; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;" class="anim-fade-up">
+<div class="p-8 max-w-2xl mx-auto flex flex-col gap-6 anim-fade-up">
     <div>
-        <h1 style="font-size: 36px; font-weight: 700; color: var(--ink);">Settings</h1>
-        <p style="color: var(--mut); margin-top: 4px;">Customize your practice experience, goals, and interface.</p>
+        <h1 class="text-3xl font-bold text-ink">Settings</h1>
+        <p class="text-mut text-sm mt-1">Customize your practice experience, goals, and interface.</p>
     </div>
 
     <!-- Daily Goal -->
-    <div class="card" style="padding: 24px;">
-        <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Daily XP Goal</h3>
-        <p style="color: var(--mut); font-size: 14px; margin-bottom: 16px;">Set how much XP you want to earn each day to maintain your streak.</p>
-        <div style="display: flex; gap: 12px;">
+    <div class="card p-6">
+        <h3 class="text-xl font-bold text-ink mb-2">Daily XP Goal</h3>
+        <p class="text-mut text-sm mb-4">Set how much XP you want to earn each day to maintain your streak.</p>
+        <div class="flex gap-3">
             @foreach (var goal in new[] { 20, 30, 50 })
             {
                 var isSelected = Progress.DailyGoal == goal;
-                <div class="chip @(isSelected ? "on" : "")" style="cursor: pointer;" @onclick="() => Progress.DailyGoal = goal">
+                <div class="chip @(isSelected ? "on" : "") cursor-pointer" @onclick="() => Progress.DailyGoal = goal">
                     @goal XP / day
                 </div>
             }
@@ -27,13 +27,13 @@
     </div>
 
     <!-- Hearts Mode -->
-    <div class="card" style="padding: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="card p-6">
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div>
-                <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Hearts System</h3>
-                <p style="color: var(--mut); font-size: 14px;">Lose hearts on wrong answers. Off by default for relaxed drills.</p>
+                <h3 class="text-xl font-bold text-ink mb-1">Hearts System</h3>
+                <p class="text-mut text-sm">Lose hearts on wrong answers. Off by default for relaxed drills.</p>
             </div>
-            <button class="btn @(Progress.HeartsEnabled ? "r" : "o") sm" 
+            <button class="btn @(Progress.HeartsEnabled ? "r" : "o") sm self-start sm:self-auto" 
                     @onclick="ToggleHearts">
                 @(Progress.HeartsEnabled ? "Enabled (♥ 5)" : "Disabled")
             </button>
@@ -41,14 +41,14 @@
     </div>
 
     <!-- Default Language -->
-    <div class="card" style="padding: 24px;">
-        <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Active Curriculum</h3>
-        <p style="color: var(--mut); font-size: 14px; margin-bottom: 16px;">Choose your primary coding language for lessons and navigation.</p>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+    <div class="card p-6">
+        <h3 class="text-xl font-bold text-ink mb-2">Active Curriculum</h3>
+        <p class="text-mut text-sm mb-4">Choose your primary coding language for lessons and navigation.</p>
+        <div class="flex gap-3 flex-wrap">
             @foreach (var lang in Content.Languages)
             {
                 var isSelected = Progress.CurrentLanguage == lang.Id;
-                <div class="chip @(lang.AccentClass) @(isSelected ? "on" : "")" style="cursor: pointer;" @onclick="() => Progress.SetLanguage(lang.Id)">
+                <div class="chip @(lang.AccentClass) @(isSelected ? "on" : "") cursor-pointer" @onclick="() => Progress.SetLanguage(lang.Id)">
                     @lang.Emoji @lang.DisplayName
                 </div>
             }
@@ -56,12 +56,12 @@
     </div>
 
     <!-- Account Details -->
-    <div class="card" style="padding: 24px;">
-        <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Account</h3>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+    <div class="card p-6">
+        <h3 class="text-xl font-bold text-ink mb-2">Account</h3>
+        <div class="flex justify-between items-center mt-3">
             <div>
-                <div style="font-weight: 700; font-size: 16px;">@Progress.UserName</div>
-                <div style="font-size: 13px; color: var(--mut);">@(Progress.IsLoggedIn ? "Logged in account" : "Guest user")</div>
+                <div class="font-bold text-base text-ink">@Progress.UserName</div>
+                <div class="text-xs text-mut">@(Progress.IsLoggedIn ? "Logged in account" : "Guest user")</div>
             </div>
             @if (Progress.IsLoggedIn)
             {
